@@ -1,38 +1,14 @@
-/*
-* Copyright 2012-2015 Broad Institute, Inc.
-* 
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
-
-package org.broadinstitute.gatk.engine.samples;
-
-import org.apache.log4j.Logger;
-import org.broadinstitute.gatk.utils.MathUtils;
-import org.broadinstitute.gatk.utils.exceptions.ReviewedGATKException;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.text.XReadLines;
+package org.broadinstitute.hellbender.utils.samples;
 
 import java.io.*;
 import java.util.*;
+import java.util.stream.IntStream;
+
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.LogManager;
+import org.broadinstitute.hellbender.exceptions.GATKException;
+import org.broadinstitute.hellbender.exceptions.UserException;
+import org.broadinstitute.hellbender.utils.text.XReadLines;
 
 /**
  * Reads PED file-formatted tabular text files
@@ -112,9 +88,8 @@ import java.util.*;
  * @author Mark DePristo
  * @since 2011
  */
-public class PedReader {
-    private static Logger logger = Logger.getLogger(PedReader.class);
-    final static private Set<String> CATAGORICAL_TRAIT_VALUES = new HashSet<String>(Arrays.asList("-9", "0", "1", "2"));
+public final class PedReader {
+    private static final Logger logger = LogManager.getLogger(PedReader.class);
     final static private String commentMarker = "#";
 
     /**
@@ -171,9 +146,12 @@ public class PedReader {
     private final static String SEX_FEMALE = "2";
     // other=unknown
 
+    final static private Set<String> CATAGORICAL_TRAIT_VALUES = new HashSet<>(Arrays.asList(
+                                        MISSING_VALUE1, MISSING_VALUE2, PHENOTYPE_UNAFFECTED, PHENOTYPE_AFFECTED));
+
     public PedReader() { }
 
-    public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) throws FileNotFoundException  {
+    public final List<Sample> parse(File source, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) throws FileNotFoundException {
         logger.info("Reading PED file " + source + " with missing fields: " + missingFields);
         return parse(new FileReader(source), missingFields, sampleDB);
     }
@@ -183,108 +161,150 @@ public class PedReader {
         return parse(new StringReader(source.replace(";", String.format("%n"))), missingFields, sampleDB);
     }
 
-    public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) {
-        final List<String> lines = new XReadLines(reader).readLines();
+    private List<String[]> splitLines(Reader reader, List<String> lines, int nExpectedFields) {
+        int lineNo = 1;
+        final List<String[]> splits = new ArrayList<>(lines.size());
+        for (final String line : lines) {
+            if (line.startsWith(commentMarker) || line.trim().equals("")) {
+                continue;
+            }
+            final String[] parts = line.split("\\s+");
+            if (parts.length != nExpectedFields) {
+                throw new UserException(reader.toString() + "Bad PED line " + lineNo + ": wrong number of fields");
+            }
+            splits.add(parts);
+            lineNo++;
+        }
+        return splits;
+    }
 
-        // What are the record offsets?
+    private boolean isQT(List<String[]> lineParts, int phenotypePos) {
+        boolean isQT = false;
+        for (final String[] parts : lineParts) {
+            if (phenotypePos != -1) {
+                isQT = isQT || !CATAGORICAL_TRAIT_VALUES.contains(parts[phenotypePos]);
+            }
+        }
+        logger.info("Phenotype is other? " + isQT);
+        return isQT;
+    }
+
+    private Sex determineSex(String[] parts, int sexPos) {
+        Sex gender = Sex.UNKNOWN;
+        if (sexPos != -1) {
+            switch (parts[sexPos]) {
+                case SEX_MALE:
+                    gender = Sex.MALE;
+                    break;
+                case SEX_FEMALE:
+                    gender = Sex.FEMALE;
+                    break;
+                default:
+                    gender = Sex.UNKNOWN;
+                    break;
+            }
+        }
+        return gender;
+    }
+
+    public final List<Sample> parse(Reader reader, EnumSet<MissingPedField> missingFields, SampleDB sampleDB) {
+
+        // Determine field position ordinals
         final int familyPos = missingFields.contains(MissingPedField.NO_FAMILY_ID) ? -1 : 0;
         final int samplePos = familyPos + 1;
         final int paternalPos = missingFields.contains(MissingPedField.NO_PARENTS) ? -1 : samplePos + 1;
         final int maternalPos = missingFields.contains(MissingPedField.NO_PARENTS) ? -1 : paternalPos + 1;
         final int sexPos = missingFields.contains(MissingPedField.NO_SEX) ? -1 : Math.max(maternalPos, samplePos) + 1;
         final int phenotypePos = missingFields.contains(MissingPedField.NO_PHENOTYPE) ? -1 : Math.max(sexPos, Math.max(maternalPos, samplePos)) + 1;
-        final int nExpectedFields = MathUtils.arrayMaxInt(Arrays.asList(samplePos, paternalPos, maternalPos, sexPos, phenotypePos)) + 1;
+        final int nExpectedFields = IntStream.of(samplePos, paternalPos, maternalPos, sexPos, phenotypePos).max().getAsInt() + 1;
 
-        // go through once and determine properties
-        int lineNo = 1;
-        boolean isQT = false;
-        final List<String[]> splits = new ArrayList<String[]>(lines.size());
-        for ( final String line : lines ) {
-            if ( line.startsWith(commentMarker)) continue;
-            if ( line.trim().equals("") ) continue;
-
-            final String[] parts = line.split("\\s+");
-
-            if ( parts.length != nExpectedFields )
-                throw new UserException.MalformedFile(reader.toString(), "Bad PED line " + lineNo + ": wrong number of fields");
-
-            if ( phenotypePos != -1 ) {
-                isQT = isQT || ! CATAGORICAL_TRAIT_VALUES.contains(parts[phenotypePos]);
-            }
-
-            splits.add(parts);
-            lineNo++;
+        List<String> lines;
+        try (final XReadLines sourceReader = new XReadLines(reader, false, commentMarker)) {
+            lines = sourceReader.readLines();
         }
-        logger.info("Phenotype is other? " + isQT);
+        catch (IOException e) {
+            throw new UserException.CouldNotReadInputFile("Error reading pedigree input");
+        }
 
-        // now go through and parse each record
-        lineNo = 1;
-        final List<Sample> samples = new ArrayList<Sample>(splits.size());
-        for ( final String[] parts : splits ) {
-            String familyID = null, individualID, paternalID = null, maternalID = null;
-            Gender sex = Gender.UNKNOWN;
-            String quantitativePhenotype = Sample.UNSET_QT;
+        final List<String[]> lineParts = splitLines(reader, lines, nExpectedFields);
+        boolean isQT = isQT(lineParts, phenotypePos);
+
+        int lineNo = 1;
+        final List<Sample> samples = new ArrayList<>(lineParts.size());
+        for (final String[] parts : lineParts) {
+            String individualID = parts[samplePos];
+            String familyID = familyPos == -1 ? null : maybeMissing(parts[familyPos]);
+            String paternalID = paternalPos == -1 ? null : maybeMissing(parts[paternalPos]);
+            String maternalID = maternalPos == -1 ? null : maybeMissing(parts[maternalPos]);
+            Sex sex = determineSex(parts, sexPos);
+
             Affection affection = Affection.UNKNOWN;
-
-            if ( familyPos != -1 ) familyID = maybeMissing(parts[familyPos]);
-            individualID = parts[samplePos];
-            if ( paternalPos != -1 ) paternalID = maybeMissing(parts[paternalPos]);
-            if ( maternalPos != -1 ) maternalID = maybeMissing(parts[maternalPos]);
-
-            if ( sexPos != -1 ) {
-                if ( parts[sexPos].equals(SEX_MALE) ) sex = Gender.MALE;
-                else if ( parts[sexPos].equals(SEX_FEMALE) ) sex = Gender.FEMALE;
-                else sex = Gender.UNKNOWN;
-            }
-
-            if ( phenotypePos != -1 ) {
-                if ( isQT ) {
-                    if ( parts[phenotypePos].equals(MISSING_VALUE1) )
+            String quantitativePhenotype = null;
+            if (phenotypePos != -1) {
+                if (isQT) {
+                    if (parts[phenotypePos].equals(MISSING_VALUE1)) {
                         affection = Affection.UNKNOWN;
+                    }
                     else {
                         affection = Affection.OTHER;
                         quantitativePhenotype = parts[phenotypePos];
                     }
-                } else {
-                    if ( parts[phenotypePos].equals(MISSING_VALUE1) ) affection = Affection.UNKNOWN;
-                    else if ( parts[phenotypePos].equals(MISSING_VALUE2) ) affection = Affection.UNKNOWN;
-                    else if ( parts[phenotypePos].equals(PHENOTYPE_UNAFFECTED) ) affection = Affection.UNAFFECTED;
-                    else if ( parts[phenotypePos].equals(PHENOTYPE_AFFECTED) ) affection = Affection.AFFECTED;
-                    else throw new ReviewedGATKException("Unexpected phenotype type " + parts[phenotypePos] + " at line " + lineNo);
+                }
+                else {
+                    switch (parts[phenotypePos]) {
+                        case MISSING_VALUE1:
+                            affection = Affection.UNKNOWN;
+                            break;
+                        case MISSING_VALUE2:
+                            affection = Affection.UNKNOWN;
+                            break;
+                        case PHENOTYPE_UNAFFECTED:
+                            affection = Affection.UNAFFECTED;
+                            break;
+                        case PHENOTYPE_AFFECTED:
+                            affection = Affection.AFFECTED;
+                            break;
+                        default:
+                            throw new GATKException("Unexpected phenotype type " + parts[phenotypePos] + " at line " + lineNo);
+                    }
                 }
             }
 
-            final Sample s = new Sample(individualID, sampleDB, familyID, paternalID, maternalID, sex, affection, quantitativePhenotype);
+            final Sample s = new Sample(individualID, familyID, paternalID, maternalID, sex, affection);
             samples.add(s);
             sampleDB.addSample(s);
             lineNo++;
         }
 
-        for ( final Sample sample : new ArrayList<Sample>(samples) ) {
-            Sample dad = maybeAddImplicitSample(sampleDB, sample.getPaternalID(), sample.getFamilyID(), Gender.MALE);
-            if ( dad != null ) samples.add(dad);
-
-            Sample mom = maybeAddImplicitSample(sampleDB, sample.getMaternalID(), sample.getFamilyID(), Gender.FEMALE);
-            if ( mom != null ) samples.add(mom);
+        for (final Sample sample : new ArrayList<>(samples)) {
+            final Sample dad = maybeAddImplicitSample(sampleDB, sample.getPaternalID(), sample.getFamilyID(), Sex.MALE);
+            if (dad != null) {
+                samples.add(dad);
+            }
+            final Sample mom = maybeAddImplicitSample(sampleDB, sample.getMaternalID(), sample.getFamilyID(), Sex.FEMALE);
+            if (mom != null) {
+                samples.add(mom);
+            }
         }
-
         return samples;
     }
 
-    private final static String maybeMissing(final String string) {
-        if ( string.equals(MISSING_VALUE1) || string.equals(MISSING_VALUE2) )
+    private static String maybeMissing(final String string) {
+        if (string.equals(MISSING_VALUE1) || string.equals(MISSING_VALUE2))
             return null;
         else
             return string;
     }
 
-    private final Sample maybeAddImplicitSample(SampleDB sampleDB, final String id, final String familyID, final Gender gender) {
-        if ( id != null && sampleDB.getSample(id) == null ) {
-            Sample s = new Sample(id, sampleDB, familyID, null, null, gender, Affection.UNKNOWN, Sample.UNSET_QT);
+    private Sample maybeAddImplicitSample(SampleDB sampleDB, final String id, final String familyID, final Sex gender) {
+        if (id != null && sampleDB.getSample(id) == null) {
+            Sample s = new Sample(id, familyID, null, null, gender);
             sampleDB.addSample(s);
             return s;
-        } else
+        }
+        else {
             return null;
+        }
     }
 
     /**
@@ -293,12 +313,12 @@ public class PedReader {
      *
      * @param arg the actual engine arg, used for the UserException if there's an error
      * @param tags a list of string tags that should be converted to the MissingPedField value
-     * @return
+     * @return Set of parsed tags that are missing from the ped file
      */
-    public static final EnumSet<MissingPedField> parseMissingFieldTags(final Object arg, final List<String> tags) {
+    public static EnumSet<MissingPedField> parseMissingFieldTags(final Object arg, final List<String> tags) {
         final EnumSet<MissingPedField> missingFields = EnumSet.noneOf(MissingPedField.class);
 
-        for ( final String tag : tags ) {
+        for (final String tag : tags) {
             try {
                 missingFields.add(MissingPedField.valueOf(tag));
             } catch ( IllegalArgumentException e ) {

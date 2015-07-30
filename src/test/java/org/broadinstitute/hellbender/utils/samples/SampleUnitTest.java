@@ -1,89 +1,70 @@
-/*
-* Copyright 2012-2015 Broad Institute, Inc.
-* 
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+package org.broadinstitute.hellbender.utils.samples;
 
-package org.broadinstitute.gatk.engine.samples;
-
-import org.broadinstitute.gatk.utils.BaseTest;
 import org.testng.Assert;
 import org.testng.annotations.BeforeClass;
+import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
-/**
- *
- */
+import org.broadinstitute.hellbender.utils.test.BaseTest;
+
 public class SampleUnitTest extends BaseTest {
-    SampleDB db;
-    static Sample fam1A, fam1B, fam1C;
-    static Sample s1, s2;
-    static Sample trait1, trait2, trait3, trait4, trait5;
 
-    @BeforeClass
-    public void init() {
-        db = new SampleDB();
+    @DataProvider(name="basicSamples")
+    public Object[][] basicSamples() {
+        return new Object[][] {
+                { new Sample("1C", "fam1", "1M", "1F", Sex.UNKNOWN), "1C", "fam1", "1M", "1F", Sex.UNKNOWN, Affection.UNKNOWN },
+                { new Sample("1F", "fam1", null, null, Sex.MALE), "1F", "fam1", null, null, Sex.MALE, Affection.UNKNOWN },
+                { new Sample("1M", "fam1", null, null, Sex.FEMALE), "1M", "fam1", null, null, Sex.FEMALE, Affection.UNKNOWN },
 
-        fam1A = new Sample("1A", db, "fam1", "1B", "1C", Gender.UNKNOWN);
-        fam1B = new Sample("1B", db, "fam1", null, null, Gender.MALE);
-        fam1C = new Sample("1C", db, "fam1", null, null, Gender.FEMALE);
-
-        s1 = new Sample("s1", db);
-        s2 = new Sample("s2", db);
-
-        trait1 = new Sample("t1", db, Affection.AFFECTED, Sample.UNSET_QT);
-        trait2 = new Sample("t2", db, Affection.UNAFFECTED, Sample.UNSET_QT);
-        trait3 = new Sample("t3", db, Affection.UNKNOWN, Sample.UNSET_QT);
-        trait4 = new Sample("t4", db, Affection.OTHER, "1.0");
-        trait5 = new Sample("t4", db, Affection.OTHER, "CEU");
+                // Samples with Affection
+                { new Sample("1C", "fam1", "1M", "1F", Sex.UNKNOWN, Affection.AFFECTED), "1C", "fam1", "1M", "1F", Sex.UNKNOWN, Affection.AFFECTED},
+                { new Sample("1F", null, null, null, Sex.MALE, Affection.UNAFFECTED), "1F", null, null, null, Sex.MALE, Affection.UNAFFECTED },
+                { new Sample("1M", null, null, null, Sex.FEMALE, Affection.OTHER), "1M", null, null, null, Sex.FEMALE, Affection.OTHER }
+        };
     }
 
     /**
-     * Now basic getters
+     * Basic getters
      */
-    @Test()
-    public void normalGettersTest() {
-        Assert.assertEquals("1A", fam1A.getID());
-        Assert.assertEquals("fam1", fam1A.getFamilyID());
-        Assert.assertEquals("1B", fam1A.getPaternalID());
-        Assert.assertEquals("1C", fam1A.getMaternalID());
-        Assert.assertEquals(null, fam1B.getPaternalID());
-        Assert.assertEquals(null, fam1B.getMaternalID());
-
-        Assert.assertEquals(Affection.AFFECTED, trait1.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait1.getOtherPhenotype());
-        Assert.assertEquals(Affection.UNAFFECTED, trait2.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait2.getOtherPhenotype());
-        Assert.assertEquals(Affection.UNKNOWN, trait3.getAffection());
-        Assert.assertEquals(Sample.UNSET_QT, trait3.getOtherPhenotype());
-        Assert.assertEquals(Affection.OTHER, trait4.getAffection());
-        Assert.assertEquals("1.0", trait4.getOtherPhenotype());
-        Assert.assertEquals("CEU", trait5.getOtherPhenotype());
+    @Test(dataProvider="basicSamples")
+    public void basicSampleTest(Sample sample, String id, String famID, String paternalID, String maternalID, Sex gender, Affection affection) {
+        Assert.assertTrue(id.equals(sample.getID()));
+        Assert.assertTrue(famID == null || famID.equals(sample.getFamilyID()));
+        Assert.assertTrue(maternalID == null || maternalID.equals(sample.getMaternalID()));
+        Assert.assertTrue(paternalID == null || paternalID.equals(sample.getPaternalID()));
+        Assert.assertEquals(gender, sample.getSex());
+        Assert.assertEquals(affection, sample.getAffection());
     }
 
-    @Test()
-    public void testGenders() {
-        Assert.assertTrue(fam1A.getGender() == Gender.UNKNOWN);
-        Assert.assertTrue(fam1B.getGender() == Gender.MALE);
-        Assert.assertTrue(fam1C.getGender() == Gender.FEMALE);
+    @Test(dataProvider="basicSamples")
+    public void testMergeSamples(Sample sample, String id, String famID, String paternalID, String maternalID, Sex gender, Affection affection) {
+
+        Sample newSample = new Sample("newSample", null, null, null, Sex.UNKNOWN, Affection.UNKNOWN);
+        Sample mergedSample1 = newSample.mergeSamples(sample);
+        Assert.assertTrue(mergedSample1.getID().equals("newSample"));
+
+        if (famID == null) {
+            Assert.assertEquals(null, mergedSample1.getFamilyID());
+        }
+        else {
+            Assert.assertTrue(famID.equals(mergedSample1.getFamilyID()));
+        }
+
+        if (maternalID == null) {
+            Assert.assertEquals(null, mergedSample1.getMaternalID());
+        }
+        else {
+            Assert.assertTrue(maternalID.equals(mergedSample1.getMaternalID()));
+        }
+
+        if (paternalID == null) {
+            Assert.assertEquals(null, mergedSample1.getPaternalID());
+        }
+        else {
+            Assert.assertTrue(paternalID.equals(mergedSample1.getPaternalID()));
+        }
+
+        Assert.assertEquals(mergedSample1.getSex(), gender);
+        Assert.assertEquals(mergedSample1.getAffection(), affection);
     }
 }

@@ -1,81 +1,24 @@
-/*
-* Copyright 2012-2015 Broad Institute, Inc.
-* 
-* Permission is hereby granted, free of charge, to any person
-* obtaining a copy of this software and associated documentation
-* files (the "Software"), to deal in the Software without
-* restriction, including without limitation the rights to use,
-* copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following
-* conditions:
-* 
-* The above copyright notice and this permission notice shall be
-* included in all copies or substantial portions of the Software.
-* 
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
-* OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-* NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
-* HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-* WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
-* FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
-* THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-*/
+package org.broadinstitute.hellbender.utils.samples;
 
-package org.broadinstitute.gatk.engine.samples;
-
-import htsjdk.samtools.SAMFileHeader;
-import org.broadinstitute.gatk.engine.GenomeAnalysisEngine;
-import org.broadinstitute.gatk.utils.exceptions.UserException;
-import org.broadinstitute.gatk.utils.sam.ReadUtils;
+import org.broadinstitute.hellbender.exceptions.UserException;
 
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- *
+ * Class for creating a temporary in memory database of samples.
  */
 public class SampleDBBuilder {
-    PedigreeValidationType validationStrictness;
-    final SampleDB sampleDB = new SampleDB();
-    final GenomeAnalysisEngine engine;
+    private final PedigreeValidationType validationStrictness;
+    private final SampleDB sampleDB = new SampleDB();
 
-    Set<Sample> samplesFromDataSources = new HashSet<Sample>();
-    Set<Sample> samplesFromPedigrees = new HashSet<Sample>();
+    private final Set<Sample> samplesFromDataSources = new HashSet<>();
+    private final Set<Sample> samplesFromPedigrees = new HashSet<>();
 
-    /** for testing only */
-    protected SampleDBBuilder(PedigreeValidationType validationStrictness) {
-        engine = null;
+    public SampleDBBuilder(PedigreeValidationType validationStrictness) {
         this.validationStrictness = validationStrictness;
-    }
-
-    /**
-     * Constructor takes both a SAM header and sample files because the two must be integrated.
-     */
-    public SampleDBBuilder(GenomeAnalysisEngine engine, PedigreeValidationType validationStrictness) {
-        this.engine = engine;
-        this.validationStrictness = validationStrictness;
-    }
-
-    /**
-     * Hallucinates sample objects for all the samples in the SAM file and stores them
-     */
-    public SampleDBBuilder addSamplesFromSAMHeader(final SAMFileHeader header) {
-        addSamplesFromSampleNames(ReadUtils.getSAMFileSamples(header));
-        return this;
-    }
-
-    public SampleDBBuilder addSamplesFromSampleNames(final Collection<String> sampleNames) {
-        for (final String sampleName : sampleNames) {
-            if (sampleDB.getSample(sampleName) == null) {
-                final Sample newSample = new Sample(sampleName, sampleDB);
-                sampleDB.addSample(newSample);
-                samplesFromDataSources.add(newSample); // keep track of data source samples
-            }
-        }
-        return this;
     }
 
     public SampleDBBuilder addSamplesFromPedigreeFiles(final List<File> pedigreeFiles) {
@@ -120,13 +63,15 @@ public class SampleDBBuilder {
         return sampleDB;
     }
 
-    public EnumSet<PedReader.MissingPedField> getMissingFields(final Object engineArg) {
-        if ( engine == null )
-            return EnumSet.noneOf(PedReader.MissingPedField.class);
-        else {
-            final List<String> posTags = engine.getTags(engineArg).getPositionalTags();
-            return PedReader.parseMissingFieldTags(engineArg, posTags);
-        }
+    private EnumSet<PedReader.MissingPedField> getMissingFields(final Object engineArg) {
+        return EnumSet.noneOf(PedReader.MissingPedField.class);
+        // @TODO - GATK allows command line args that specify fields missing
+        //if ( engine == null )
+        //    return EnumSet.noneOf(PedReader.MissingPedField.class);
+        //else {
+        //    final List<String> posTags = engine.getTags(engineArg).getPositionalTags();
+        //    return PedReader.parseMissingFieldTags(engineArg, posTags);
+        //}
     }
 
     // --------------------------------------------------------------------------------
@@ -135,27 +80,25 @@ public class SampleDBBuilder {
     //
     // --------------------------------------------------------------------------------
 
-    protected final void validate() {
+    private void validate() {
         validatePedigreeIDUniqueness();
-        if ( validationStrictness != PedigreeValidationType.SILENT ) {
+        if (validationStrictness != PedigreeValidationType.SILENT) {
             // check that samples in data sources are all annotated, if anything is annotated
-            if ( ! samplesFromPedigrees.isEmpty() && ! samplesFromDataSources.isEmpty() ) {
-                final Set<String> sampleNamesFromPedigrees = new HashSet<String>();
-                for ( final Sample pSample : samplesFromPedigrees )
-                    sampleNamesFromPedigrees.add(pSample.getID());
+            if (!samplesFromPedigrees.isEmpty() && ! samplesFromDataSources.isEmpty()) {
+                final Set<String> sampleNamesFromPedigrees = samplesFromPedigrees.stream().map(Sample::getID).collect(Collectors.toSet());
 
-                for ( final Sample dsSample : samplesFromDataSources )
-                    if ( ! sampleNamesFromPedigrees.contains(dsSample.getID()) )
-                        throw new UserException("Sample " + dsSample.getID() + " found in data sources but not in pedigree files with STRICT pedigree validation");
+                for (final Sample dsSample : samplesFromDataSources)
+                    if (!sampleNamesFromPedigrees.contains(dsSample.getID())) {
+                        throw new UserException("Sample " + dsSample.getID()
+                                + " found in data sources but not in pedigree files with STRICT pedigree validation");
+                    }
             }
         }
     }
 
     private void validatePedigreeIDUniqueness() {
-        Set<String> pedigreeIDs = new HashSet<String>();
-        for ( Sample sample : samplesFromPedigrees ) {
-            pedigreeIDs.add(sample.getID());
-        }
-        assert pedigreeIDs.size() == samplesFromPedigrees.size() : "The number of sample IDs extracted from the pedigree does not equal the number of samples in the pedigree. Is a sample associated with multiple families?";
+        final Set<String> pedigreeIDs = samplesFromPedigrees.stream().map(Sample::getID).collect(Collectors.toSet());
+        assert pedigreeIDs.size() == samplesFromPedigrees.size() :
+                "The number of sample IDs extracted from the pedigree does not equal the number of samples in the pedigree. Is a sample associated with multiple families?";
     }
 }

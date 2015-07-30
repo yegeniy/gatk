@@ -65,8 +65,13 @@ public abstract class VariantWalker extends GATKTool {
         } else {
             throw new UserException("File " + drivingVariantFile + " cannot be decoded as a variant file.");
         }
+    }
 
-        if ( hasIntervals() ) {
+    @Override
+    void initializeIntervals() {
+        super.initializeIntervals();
+        if (hasIntervals()) {
+            // propagate any intervals for traversal; this needs to happen AFTER the intervals have been set up
             drivingVariants.setIntervalsForTraversal(intervalsForTraversal);
         }
     }
