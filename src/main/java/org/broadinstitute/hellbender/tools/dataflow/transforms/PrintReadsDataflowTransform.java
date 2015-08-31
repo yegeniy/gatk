@@ -20,8 +20,7 @@ public final class PrintReadsDataflowTransform extends PTransformSAM<String> {
 
                         @Override
                         protected void apply(final GATKRead read) {
-                                // TODO: write a utility that can produce a SAM string for a GATK read without conversion to SAMRecord
-                                output(read.convertToSAMRecord(getHeader()).getSAMString());
+                                output(read.getSAMString());
                         }
                 }));
         }

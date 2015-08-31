@@ -12,7 +12,10 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 public class GATKReadAdaptersUnitTest extends BaseTest {
 
@@ -24,6 +27,7 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
     public static final byte[] BASIC_READ_BASE_QUALITIES = {30, 40, 30, 50};
     public static final String BASIC_READ_CIGAR = "1M1I2M";
     public static final String BASIC_READ_GROUP = "FOO";
+    public static final String BASIC_PROGRAM = "x";
     public static final int BASIC_READ_END = BASIC_READ_START + TextCigarCodec.decode(BASIC_READ_CIGAR).getReferenceLength() - 1;
     public static final String BASIC_READ_MATE_CONTIG = "1";
     public static final int BASIC_READ_MATE_START = 125;
@@ -36,9 +40,14 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         return new GoogleGenomicsReadToGATKReadAdapter(basicGoogleGenomicsRead());
     }
 
-    private static SAMRecord basicSAMRecord() {
+    private static SAMFileHeader getSAMHeader() {
         final SAMFileHeader header = ArtificialReadUtils.createArtificialSamHeader(2, 1, 1000000);
-        header.addReadGroup(new SAMReadGroupRecord("FOO"));
+        header.addReadGroup(new SAMReadGroupRecord(BASIC_READ_GROUP));
+        return header;
+    }
+
+    private static SAMRecord basicSAMRecord() {
+        final SAMFileHeader header = getSAMHeader();
 
         final SAMRecord read = ArtificialReadUtils.createArtificialSAMRecord(
                 header,
@@ -55,10 +64,16 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         read.setMateAlignmentStart(BASIC_READ_MATE_START);
         read.setReadPairedFlag(true);
         read.setFirstOfPairFlag(true);
+        // ArtificialReadUtils adds this tag, but explicitly add it for symmetry with basicGoogleGenomicsRead
+        read.setAttribute(SAMTag.PG.name(), BASIC_PROGRAM);
 
         return read;
     }
 
+    /**
+     * Creates a basic mapped Google read with a mapped mate.
+     * @return GoogleGenomicsRead
+     */
     private static Read basicGoogleGenomicsRead() {
         final Read read = ArtificialReadUtils.createArtificialGoogleGenomicsRead(
                 BASIC_READ_NAME,
@@ -78,6 +93,9 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         read.setNumberReads(2);
         read.setReadNumber(0);
         read.setProperPlacement(false);
+        Map<String, List<String>> infoMap = new HashMap<String, List<String>>();
+        infoMap.put(SAMTag.PG.name(), Collections.singletonList(BASIC_PROGRAM));
+        read.setInfo(infoMap);
 
         return read;
     }
@@ -249,7 +267,25 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         samWithUnmappedMate.setMateUnmappedFlag(true);
 
         final Read googleReadWithUnmappedMate = basicGoogleGenomicsRead();
-        googleReadWithUnmappedMate.setNextMatePosition(null);
+
+        // NOTE: we're taking advantage here of a quirk of the current adapter implementation to allow us to run
+        // all the getSAMString tests.
+        //
+        // The GoogleGenomicsRead adapter throws if the caller attempts to query the isMateReverseStrand
+        // flag and it has never previously been explicitly set to true or false. In order to ensure
+        // that all of the getSAMString tests can query this flag, we artificially set a matePosition
+        // here with no position value but with the reverseStrandFlag set to false. Doing this does not
+        // toggle the value returned by the mateIsUnmapped (it will still return true), and ensures that
+        // we will subsequently be able to run all the getSAMString tests on these reads once they have
+        // had a mate position established..
+        //
+        // (See the note on setMatePosition in GoogleGenomicsRead adapter)
+        Position matePos = new Position();
+        matePos.setReverseStrand(false);
+        googleReadWithUnmappedMate.setNextMatePosition(matePos);
+        // verify that the read still has mateIsUnmapped == true
+        boolean bMateIsUnmapped = new GoogleGenomicsReadToGATKReadAdapter(googleReadWithUnmappedMate).mateIsUnmapped();
+        Assert.assertTrue(new GoogleGenomicsReadToGATKReadAdapter(googleReadWithUnmappedMate).mateIsUnmapped());
 
         return new Object[][]{
                 { basicReadBackedBySam(), BASIC_READ_MATE_CONTIG, BASIC_READ_MATE_START },
@@ -490,7 +526,7 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         read.setCigar(new Cigar());
         Assert.assertEquals(read.getCigar(), new Cigar(), "Wrong cigar for read after setCigar()");
 
-        read.setCigar((Cigar)null);
+        read.setCigar((Cigar) null);
         Assert.assertEquals(read.getCigar(), new Cigar(), "Wrong cigar for read after setCigar()");
     }
 
@@ -591,8 +627,8 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
             testCases.add(new Object[]{ unmappedRead, true });
         }
 
-        testCases.add(new Object[]{ basicReadBackedBySam(), false });
-        testCases.add(new Object[]{ basicReadBackedByGoogle(), false });
+        testCases.add(new Object[]{basicReadBackedBySam(), false});
+        testCases.add(new Object[]{basicReadBackedByGoogle(), false});
 
         return testCases.toArray(new Object[][]{});
     }
@@ -622,8 +658,14 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         SAMRecord samWithUnmappedMate3 = basicSAMRecord();
         samWithUnmappedMate3.setMateAlignmentStart(SAMRecord.NO_ALIGNMENT_START);
 
+        // We can't create a SAM string for this read once its been wrapped by the adapter
+        // since mateIsReverseStrand throws because the mate position is not present.
+        //Read googleReadWithUnmappedMate = basicGoogleGenomicsRead();
+        //googleReadWithUnmappedMate.setNextMatePosition(null);
         Read googleReadWithUnmappedMate = basicGoogleGenomicsRead();
-        googleReadWithUnmappedMate.setNextMatePosition(null);
+        Position newPosition = new Position();
+        newPosition.setReverseStrand(false);
+        googleReadWithUnmappedMate.setNextMatePosition(newPosition);
 
         Read googleReadWithUnmappedMate2 = basicGoogleGenomicsRead();
         googleReadWithUnmappedMate2.getNextMatePosition().setReferenceName(SAMRecord.NO_ALIGNMENT_REFERENCE_NAME);
@@ -959,4 +1001,408 @@ public class GATKReadAdaptersUnitTest extends BaseTest {
         Assert.assertNull(read.getAttributeAsString("DR"), "Attribute DR should be null");
         Assert.assertNull(read.getAttributeAsInteger("LT"), "Attribute LT should be null");
     }
+
+    @Test
+    public void testBasicGetSAMString() {
+        // 1. GATKRead backed by a SAM record
+        final SAMRecord samRecord = basicSAMRecord();
+        final String samRecordString = samRecord.getSAMString();
+        final GATKRead samBackedRead = new SAMRecordToGATKReadAdapter(samRecord);
+        Assert.assertEquals(samRecordString, samBackedRead.getSAMString(), "SAM-backed GATKRead string should match wrapped SAM record string");
+
+        // 2. SAM-backed GATKRead backed converted to a GoogleRead
+        final String googleReadString = new GoogleGenomicsReadToGATKReadAdapter(samBackedRead.convertToGoogleGenomicsRead()).getSAMString();
+        Assert.assertEquals(googleReadString, samRecordString, "Google-backed GATKRead string should match SAM record string");
+    }
+
+    @Test(dataProvider = "GetAndSetPositionData")
+    public void testSAMStringPosition(final GATKRead read, final String expectedContig, final int expectedStart, final int expectedEnd) {
+        // just calling setPosition leaves the read in a state where isReverseStrand results in a missing field
+        // exception for "strand" when calling getSAMString(), so we need to set the reverse strand as well
+        read.setPosition("2", 17);
+        read.setIsReverseStrand(false);
+        final SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetPositionData");
+    }
+
+    @Test(dataProvider = "GetAndSetNameData")
+    public void testSAMStringName( final GATKRead read, final String expectedName ) {
+        read.setName("NEWNAME");
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetNameData");
+
+        read.setName(null);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetNameData");
+    }
+
+    @Test(dataProvider = "GetLengthData")
+    public void testSAMStringLength(final GATKRead read, final int expectedLength) {
+        final SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetLengthData");
+    }
+
+    @Test(dataProvider = "GetUnclippedStartAndEndData")
+    public void testSAMStringUnclippedStartAndEnd(final GATKRead read, final int expectedUnclippedStart, final int expectedUnclippedEnd) {
+        final SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+    }
+
+    @Test(dataProvider = "GetAndSetMatePositionData")
+    public void testSAMStringMatePosition(final GATKRead read, final String expectedMateContig, final int expectedMateStart) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+
+        read.setMatePosition("2", 52);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+
+        read.setMatePosition(new SimpleInterval("1", 40, 40));
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+
+        // Setting mate position should have the additional effect of marking the read as paired
+        read.setIsPaired(false);
+        read.setMatePosition("1", 1);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+
+        read.setIsPaired(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        // After conversion by GenomicsConverter, the firstInPair flag is set in the SAM record, despite isPaired having
+        // been set being false.
+        // https://github.com/broadinstitute/hellbender/issues/891
+        // expected: basic_read	64	1	5	20	1M1I2M	=	1	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        // actual: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        // Also, note that the mate alignment start field is set to 1 in the expected SAM record.
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMatePositionData");
+    }
+
+    @Test(dataProvider = "GetAndSetFragmentLengthData")
+    public void testSAMStringFragmentLengthString(final GATKRead read, final int expectedFragmentLength) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMappingQualityData");
+
+        read.setFragmentLength(50);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMappingQualityData");
+
+        // Negative fragment lengths explicitly allowed
+        read.setFragmentLength(-50);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMappingQualityData");
+    }
+
+    @Test(dataProvider = "GetAndSetMappingQualityData")
+    public void testSAMStringMappingQuality(final GATKRead read, final int expectedMappingQuality) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMappingQualityData");
+
+        read.setMappingQuality(50);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetMappingQualityData");
+    }
+
+    @Test(dataProvider = "GetAndSetBasesData")
+    public void testSAMStringBases(final GATKRead read, final byte[] expectedBases, final String expectedBasesString) {
+        final byte[] newBases = {'G', 'C', 'G', 'G'};
+        read.setBases(newBases);
+
+        final SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetBasesData");
+    }
+
+    @Test(dataProvider = "GetAndSetBaseQualitiesData")
+    public void testSAMStringBaseQualities(final GATKRead read, final byte[] expectedQuals) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetBaseQualitiesData");
+
+        final byte[] newQuals = {1, 2, 3, 4};
+        read.setBaseQualities(newQuals);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetBaseQualitiesData");
+    }
+
+    @Test(dataProvider = "GetAndSetCigarData")
+    public void testSAMStringCigar(final GATKRead read, final Cigar expectedCigar) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetCigarData");
+
+        final Cigar newCigar = TextCigarCodec.decode("4M");
+        read.setCigar(newCigar);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetCigarData");
+
+        read.setCigar("2M2I");
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetCigarData");
+
+        read.setCigar(new Cigar());
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetCigarData");
+
+        read.setCigar((Cigar) null);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetAndSetCigarData");
+    }
+
+    @Test(dataProvider = "GetAndSetReadGroupData")
+    public void testSAMStringReadGroup(final GATKRead read, final String expectedReadGroup) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        read.setReadGroup("NewReadGroup");
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        read.setReadGroup(null);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+    }
+
+    @Test
+    public void testSAMStringUnmappedMateContig() {
+        // test the special case of an unpaired read to make sure we get the proper mate contig name
+        SAMFileHeader samHeader = getSAMHeader();
+        SAMRecord samRec = ArtificialReadUtils.createArtificialSAMRecord(
+                samHeader,
+                BASIC_READ_NAME,
+                samHeader.getSequenceIndex(BASIC_READ_CONTIG),
+                BASIC_READ_START,
+                BASIC_READ_BASES,
+                BASIC_READ_BASE_QUALITIES,
+                BASIC_READ_CIGAR
+        );
+
+        final GATKRead read = new SAMRecordToGATKReadAdapter(samRec);
+        Assert.assertTrue(samRec.getSAMString().equals(read.getSAMString()));
+    }
+
+    @Test(dataProvider = "IsPairedData")
+    public void testSAMStringIsPaired(final GATKRead read, final boolean expectedIsPaired, final boolean expectedIsProperlyPaired) {
+        //SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        // After conversion by GenomicsConverter, the firstInPair flag is set in the SAM record, despite isPaired having
+        // been set being false (0x2 is also set here).
+        // https://github.com/broadinstitute/hellbender/issues/891
+        //e: basic_read	66	1	5	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        //read.setIsPaired(false);
+        //samRec = read.convertToSAMRecord(getSAMHeader());
+        // After conversion by GenomicsConverter, the firstInPair flag is set in the SAM record, despite isPaired having
+        // been set being false.
+        // https://github.com/broadinstitute/hellbender/issues/891
+        //e: basic_read	64	1	5	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        read.setIsProperlyPaired(true);
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        read.setIsProperlyPaired(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+
+        //read.setIsPaired(false);
+        //samRec = read.convertToSAMRecord(getSAMHeader());
+        // After conversion by GenomicsConverter, the firstInPair flag is set in the SAM record, despite isPaired having
+        // been set being false.
+        // https://github.com/broadinstitute/hellbender/issues/891
+        //e: basic_read	64	1	5	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsPairedData");
+    }
+
+    @Test(dataProvider = "IsUnmappedData")
+    public void testSAMStringIsUnmapped(final GATKRead read, final boolean expectedIsUnmapped) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        // After conversion by GenomicsConverter, the firstInPair flag is set in the SAM record
+        // https://github.com/broadinstitute/hellbender/issues/891
+        //e: basic_read	65	1	0	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	69	*	0	20	1M1I2M	1	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //e: basic_read	65	*	5	20	1M1I2M	1	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO\
+        //a: basic_read	69	*	0	20	1M1I2M	1	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        read.setIsUnmapped();
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        read.setPosition("1", 1);
+        read.setIsReverseStrand(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        read.setIsUnmapped();
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+    }
+
+    @Test(dataProvider = "MateIsUnmappedData")
+    public void testSAMStringMateIsUnmapped(final GATKRead read, final boolean expectedMateIsUnmapped) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        //e: basic_read	73	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	73	1	5	20	1M1I2M	*	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+
+        //e: basic_read	65	1	5	20	1M1I2M	*	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //a: basic_read	73	1	5	20	1M1I2M	*	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        // setMateIsUnmapped() leaves the read in a state that results in a missing field exception for "matePosition"
+        // in a mateIsReverseStrand() query
+        //read.setMateIsUnmapped();
+        //samRec = read.convertToSAMRecord(getSAMHeader());
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        read.setMatePosition("1", 1);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        // setMateIsUnmapped() leaves the read in a state that results in a missing field exception for "matePosition"
+        // in a mateIsReverseStrand() query
+        //read.setMateIsUnmapped();
+        //samRec = read.convertToSAMRecord(getSAMHeader());
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+
+        // See the setMateIsUnmapped comment above
+        // Calling setMateIsUnmapped() should have the side effect of marking the read as paired
+        //read.setIsPaired(false);
+        //read.setMateIsUnmapped();
+        //samRec = read.convertToSAMRecord(getSAMHeader());
+        //Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: MateIsUnmappedData");
+    }
+
+    @Test(dataProvider = "IsReverseStrandData")
+    public void testSAMStringIsReverseStrand(final GATKRead read, final boolean expectedIsReverseStrand) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsReverseStrandData");
+
+        read.setIsReverseStrand(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsReverseStrandData");
+
+        read.setIsReverseStrand(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: IsReverseStrandData");
+    }
+
+    @Test(dataProvider = "MateIsReverseStrandData")
+    public void testSAMStringMateIsReverseStrand(final GATKRead read, final boolean expectedMateIsReverseStrand) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+
+        read.setMateIsReverseStrand(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+
+        read.setMateIsReverseStrand(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+
+        // Calling setMateIsReverseStrand() should have the side effect of marking the read as paired.
+        read.setIsPaired(false);
+        read.setMateIsReverseStrand(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+    }
+
+    @Test(dataProvider = "ReadNumberTestData")
+    public void testSAMStringReadNumber(final GATKRead read, final boolean expectedIsFirstOfPair, final boolean expectedIsSecondOfPair) {
+        SAMRecord samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+
+        read.setIsFirstOfPair();
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+
+        read.setIsSecondOfPair();
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: ReadNumberTestData");
+    }
+
+    /*
+    @Test(dataProvider = "GetReadNumberOfUnpairedReadData")
+    public void testSAMStringReadNumberOfUnpairedRead(final GATKRead unpairedRead) {
+        final SAMRecord samRec = unpairedRead.convertToSAMRecord(getSAMHeader());
+        // https://github.com/broadinstitute/hellbender/issues/891
+        // e: basic_read	128	1	5	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        // a: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+
+        // https://github.com/broadinstitute/hellbender/issues/891
+        // e: basic_read	64	1	5	20	1M1I2M	=	125	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        // a: basic_read	0	1	5	20	1M1I2M	=	0	0	ACGT	?I?S	PG:Z:x	RG:Z:FOO
+        //Assert.assertEquals(unpairedRead.getSAMString(), samRec.getSAMString(), "SAM string comparison failure: GetReadNumberOfUnpairedReadData");
+    }
+    */
+
+    @Test(dataProvider = "GetAndSetAttributesData")
+    public void testSAMStringAttributes( final GATKRead read ) {
+        Assert.assertNull(read.getAttributeAsInteger("DR"), "Attribute DR should be null");
+
+        read.setAttribute("DR", 5);
+        String samString = read.getSAMString();
+
+        // We lose type information for custom attributes for Google Genomics reads, but the data provider
+        // for this test includes both SAM-backed and Google read-backed items so we need to test for either
+        Assert.assertTrue(samString.contains("DR:i:5") || samString.contains("DR:Z:5"), "SAM string comparison failure: GetAndSetAttributesData");
+
+        // test type coercion
+        read.setAttribute("DR", "6");
+        samString = read.getSAMString();
+        Assert.assertTrue(samString.contains("DR:Z:6"), "SAM string comparison failure: GetAndSetAttributesData");
+
+        read.clearAttribute("DR");
+        samString = read.getSAMString();
+        Assert.assertTrue(!samString.contains("DR:"), "SAM string comparison failure: GetAndSetAttributesData");
+
+        // We lose type information for custom attributes for Google Genomics reads, but the data provider
+        // for this test includes both SAM-backed and Google read-backed items so we need to test for either
+        read.setAttribute("DR", new byte[]{1, 2, 3});
+        samString = read.getSAMString();
+        Assert.assertTrue(samString.contains("DR:"), "SAM string comparison failure: GetAndSetAttributesData");
+
+        read.clearAttribute("DR");
+        samString = read.getSAMString();
+        Assert.assertTrue(!samString.contains("DR:"), "SAM string comparison failure: GetAndSetAttributesData");
+    }
+
+    @Test(dataProvider = "GetAndSetSimpleFlagsData")
+    public void testSAMStringSimpleFlags(final GATKRead read) {
+        SAMRecord samRec;
+
+        read.setIsSecondaryAlignment(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsSecondaryAlignment(true)");
+
+        read.setIsSecondaryAlignment(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsSecondaryAlignment(false)");
+
+        read.setIsSupplementaryAlignment(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsSupplementaryAlignment(true)");
+
+        read.setIsSupplementaryAlignment(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsSupplementaryAlignment(false)");
+
+        read.setFailsVendorQualityCheck(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setFailsVendorQualityCheck(true)");
+
+        read.setFailsVendorQualityCheck(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setFailsVendorQualityCheck(false)");
+
+        read.setIsDuplicate(true);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsDuplicate(true)");
+
+        read.setIsDuplicate(false);
+        samRec = read.convertToSAMRecord(getSAMHeader());
+        Assert.assertEquals(read.getSAMString(), samRec.getSAMString(), "Invalid SAM string after setIsDuplicate(false)");
+    }
+
 }

@@ -32,9 +32,9 @@ public final class PrintReadsTransformUnitTest {
 
     @Test(dataProvider = "reads", groups= {"dataflow"})
     public void printReadsTransformTest(List<GATKRead> reads, SAMFileHeader header){
-        Set<String> expected = reads.stream().
-                 map(r -> r.convertToSAMRecord(header))
-                .map(SAMRecord::getSAMString).collect(Collectors.toSet());
+        Set<String> expected = reads.stream()
+                .map(r -> r.getSAMString())
+                .collect(Collectors.toSet());
 
         Pipeline p = GATKTestPipeline.create();
         DataflowUtils.registerGATKCoders(p);

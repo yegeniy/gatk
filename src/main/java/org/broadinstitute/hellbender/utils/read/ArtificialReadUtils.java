@@ -383,6 +383,18 @@ public final class ArtificialReadUtils {
         }
         googleRead.setAlignedQuality(convertedQuals);
 
+        // We need to add these in order to create a fully formed read that can be
+        // wrapped by a GATKRead and converted to a SAMString without GATKRead
+        // throwing missing field exceptions.
+        googleRead.setFailedVendorQualityChecks(false);
+        googleRead.setSecondaryAlignment(false);
+        googleRead.setSupplementaryAlignment(false);
+        googleRead.setDuplicateFragment(false);
+
+        Position matePos = new Position();
+        matePos.setReverseStrand(false);
+        googleRead.setNextMatePosition(matePos);
+
         return googleRead;
     }
 

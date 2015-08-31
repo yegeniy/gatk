@@ -41,7 +41,7 @@ public final class PrintReadsDataflowIntegrationTest extends CommandLineProgramT
         try(ReadsDataSource readsExpected = new ReadsDataSource(inputFile)){
             readsExpected.setIntervalsForTraversal(Lists.newArrayList(new SimpleInterval("chr7:1-202"), new SimpleInterval("chr8:1-202")));
             expectedReadStrings = StreamSupport.stream(readsExpected.spliterator(), true)
-                    .map(r -> r.convertToSAMRecord(readsExpected.getHeader()).getSAMString())
+                    .map(r -> r.getSAMString())
                     .map(String::trim)
                     .collect(Collectors.toSet());
         }
