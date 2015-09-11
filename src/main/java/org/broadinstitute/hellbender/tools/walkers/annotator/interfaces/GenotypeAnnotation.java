@@ -8,12 +8,18 @@ import org.broadinstitute.hellbender.engine.AlignmentContext;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
 
+import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.List;
 
 /**
  * Represents an annotation that is computed for a single genotype.
  */
-public abstract class GenotypeAnnotation {
+public abstract class GenotypeAnnotation extends VariantAnnotation{
+
+    protected GenotypeAnnotation(final AnnotationGroup... groups){
+        super(groups);
+    }
 
     /**
      * Computes the annotation for the given genotype and the likelihoods per read.
@@ -35,9 +41,4 @@ public abstract class GenotypeAnnotation {
      * Return the descriptions used for the VCF FORMAT meta field
      */
     public abstract List<VCFFormatHeaderLine> getDescriptions();
-
-    /**
-     * Return the FORMAT keys
-     */
-    public abstract List<String> getKeyNames();
 }

@@ -4,6 +4,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -30,6 +31,10 @@ import java.util.Map;
  */
 
 public final class GenotypeSummaries extends InfoFieldAnnotation {
+
+    public GenotypeSummaries(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     @Override
     public Map<String, Object> annotate(final ReferenceContext ref,

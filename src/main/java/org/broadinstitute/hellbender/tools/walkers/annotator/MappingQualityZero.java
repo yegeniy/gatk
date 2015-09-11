@@ -5,6 +5,7 @@ import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import htsjdk.variant.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -28,6 +29,10 @@ import java.util.*;
  *
  */
 public final class MappingQualityZero extends InfoFieldAnnotation {
+
+    public MappingQualityZero(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     public Map<String, Object> annotate(final ReferenceContext ref,
                                         final VariantContext vc,

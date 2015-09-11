@@ -9,6 +9,7 @@ import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
 import htsjdk.variant.vcf.VCFStandardHeaderLines;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -36,6 +37,10 @@ import java.util.*;
  * </ul>
  */
 public final class DepthPerAlleleBySample extends GenotypeAnnotation {
+
+    public DepthPerAlleleBySample(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     public void annotate(final ReferenceContext ref,
                          final VariantContext vc,

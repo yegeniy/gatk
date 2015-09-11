@@ -3,6 +3,7 @@ package org.broadinstitute.hellbender.tools.walkers.annotator;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.apache.log4j.Logger;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -35,6 +36,15 @@ import java.util.*;
  */
 public final class PossibleDeNovo extends InfoFieldAnnotation {
 
+    public PossibleDeNovo(final Set<Trio> trios, final double minGenotypeQualityP, final AnnotationGroup... groups) {
+        super(groups);
+        this.trios = Collections.unmodifiableSet(new HashSet<>(trios));
+        if ( trios.isEmpty() ) {
+            PossibleDeNovo.logger.warn("Annotation will not be calculated, must provide a valid PED file (-ped) from the command line.");
+        }
+        mendelianViolation = new MendelianViolation(minGenotypeQualityP);
+    }
+
     private static final Logger logger = Logger.getLogger(PossibleDeNovo.class);
 
     private static final int hi_GQ_threshold = 20; //WARNING - If you change this value, update the description in GATKVCFHeaderLines
@@ -44,14 +54,6 @@ public final class PossibleDeNovo extends InfoFieldAnnotation {
 
     private final MendelianViolation mendelianViolation;
     private final Set<Trio> trios;
-
-    PossibleDeNovo(final Set<Trio> trios, final double minGenotypeQualityP){
-        this.trios = Collections.unmodifiableSet(new HashSet<>(trios));
-        if ( trios.isEmpty() ) {
-            PossibleDeNovo.logger.warn("Annotation will not be calculated, must provide a valid PED file (-ped) from the command line.");
-        }
-        mendelianViolation = new MendelianViolation(minGenotypeQualityP);
-    }
 
     @Override
     public List<String> getKeyNames() { return Arrays.asList(

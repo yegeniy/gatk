@@ -7,13 +7,18 @@ import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFHeaderLines;
 
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
 /**
  * Annotations relevant to the INFO field of the variant file (ie annotations for sites).
  */
-public abstract class InfoFieldAnnotation {
+public abstract class InfoFieldAnnotation extends VariantAnnotation{
+
+    protected InfoFieldAnnotation(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     /**
      * Computes the annotation for the given variant and the likelihoods per read.
@@ -37,10 +42,4 @@ public abstract class InfoFieldAnnotation {
         }
         return lines;
     }
-
-    /**
-     * Return the INFO keys
-     */
-    public abstract List<String> getKeyNames();
-
 }

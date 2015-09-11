@@ -7,6 +7,7 @@ import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.Utils;
@@ -35,6 +36,10 @@ import java.util.Map;
  * from the assembly engine.
  */
 public final class BaseQualitySumPerAlleleBySample extends GenotypeAnnotation {
+
+    public BaseQualitySumPerAlleleBySample(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     @Override
     public List<String> getKeyNames() { return Collections.singletonList(GATKVCFConstants.QUALITY_SCORE_SUM_KEY); }

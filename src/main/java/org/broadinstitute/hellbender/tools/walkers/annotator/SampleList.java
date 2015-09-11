@@ -4,6 +4,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -18,6 +19,10 @@ import java.util.*;
  * <p>The output is a list of the samples that are genotyped as having one or more variant alleles. This allows you to easily determine which samples are non-reference (heterozygous or homozygous-variant) and compare them to samples that are homozygous-reference.</p>
  */
 public final class SampleList extends InfoFieldAnnotation {
+
+    public SampleList(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     @Override
     public Map<String, Object> annotate(final ReferenceContext ref,

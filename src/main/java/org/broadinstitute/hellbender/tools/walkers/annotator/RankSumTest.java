@@ -5,6 +5,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.MannWhitneyU;
 import org.broadinstitute.hellbender.utils.QualityUtils;
@@ -22,12 +23,13 @@ import java.util.*;
 public abstract class RankSumTest extends InfoFieldAnnotation {
     private boolean useDithering = true;
 
-    public RankSumTest(final boolean useDithering){
+    public RankSumTest(final boolean useDithering, final AnnotationGroup... groups){
+        super(groups);
         this.useDithering = useDithering;
     }
 
-    public RankSumTest(){
-        this(true);
+    public RankSumTest(final AnnotationGroup... groups){
+        this(true, groups);
     }
 
     public Map<String, Object> annotate(final ReferenceContext ref,

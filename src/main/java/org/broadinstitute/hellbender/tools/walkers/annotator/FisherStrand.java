@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.utils.FisherExactTest;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
@@ -37,6 +38,11 @@ import static org.apache.commons.math3.util.CombinatoricsUtils.factorialLog;
  *
  */
 public final class FisherStrand extends StrandBiasTest {
+
+    public FisherStrand(final AnnotationGroup... groups) {
+        super(groups);
+    }
+
     static final double MIN_PVALUE = 1E-320;
     private static final int MIN_COUNT = ARRAY_DIM;
 

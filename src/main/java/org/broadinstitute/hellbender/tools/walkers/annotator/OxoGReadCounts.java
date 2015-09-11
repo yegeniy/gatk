@@ -6,6 +6,7 @@ import htsjdk.variant.variantcontext.GenotypeBuilder;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFFormatHeaderLine;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.GenotypeAnnotation;
 import org.broadinstitute.hellbender.utils.BaseUtils;
 import org.broadinstitute.hellbender.utils.QualityUtils;
@@ -36,6 +37,10 @@ import static org.broadinstitute.hellbender.utils.BaseUtils.Base.*;
  *  by Costello et al.</a></p>
  */
 public final class OxoGReadCounts extends GenotypeAnnotation {
+
+    public OxoGReadCounts(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     public static final Allele REF_C = Allele.create(C.base, true);
     public static final Allele REF_A = Allele.create(A.base, true);

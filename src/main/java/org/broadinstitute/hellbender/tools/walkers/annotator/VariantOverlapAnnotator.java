@@ -28,7 +28,7 @@ public final class VariantOverlapAnnotator {
      * @see #VariantOverlapAnnotator(org.broadinstitute.gatk.utils.commandline.RodBinding, java.util.Map, org.broadinstitute.gatk.utils.GenomeLocParser)
      */
     public VariantOverlapAnnotator(final FeatureInput<VariantContext> dbSNPBinding) {
-        this(dbSNPBinding, Collections.<FeatureInput<VariantContext>, String>emptyMap());
+        this(dbSNPBinding, Collections.emptyMap());
     }
 
     /**

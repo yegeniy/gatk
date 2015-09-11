@@ -5,6 +5,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.genotyper.MostLikelyAllele;
@@ -20,6 +21,11 @@ import java.util.StringTokenizer;
  * Class of tests to detect strand bias.
  */
 public abstract class StrandBiasTest extends InfoFieldAnnotation {
+
+    public StrandBiasTest(final AnnotationGroup... groups) {
+        super(groups);
+    }
+
     protected static final int ARRAY_DIM = 2;
     protected static final int ARRAY_SIZE = ARRAY_DIM * ARRAY_DIM;
 

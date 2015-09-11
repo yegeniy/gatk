@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFHeaderLines;
@@ -53,6 +54,11 @@ import static java.lang.Math.min;
  *
  */
 public final class StrandOddsRatio extends StrandBiasTest {
+
+    public StrandOddsRatio(final AnnotationGroup... groups) {
+        super(groups);
+    }
+
     private static final double PSEUDOCOUNT = 1.0;
     private static final int MIN_COUNT = 0;
 

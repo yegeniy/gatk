@@ -6,6 +6,7 @@ import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.Utils;
@@ -40,6 +41,10 @@ import java.util.*;
  * </ul>
  */
 public final class QualByDepth extends InfoFieldAnnotation {
+
+    public QualByDepth(final AnnotationGroup... groups) {
+        super(groups);
+    }
 
     @VisibleForTesting
     static final double MAX_QD_BEFORE_FIXING = 35;

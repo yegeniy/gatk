@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.tools.walkers.annotator;
 
 import htsjdk.variant.vcf.VCFInfoHeaderLine;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
@@ -25,6 +26,11 @@ import java.util.OptionalDouble;
  *
  */
 public final class ClippingRankSumTest extends RankSumTest {
+
+    public ClippingRankSumTest(final AnnotationGroup... groups) {
+        super(groups);
+    }
+
     @Override
     public List<String> getKeyNames() { return Collections.singletonList(GATKVCFConstants.CLIPPING_RANK_SUM_KEY); }
 

@@ -10,6 +10,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.AnnotationGroup;
 import org.broadinstitute.hellbender.tools.walkers.annotator.interfaces.InfoFieldAnnotation;
 import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.Utils;
@@ -17,10 +18,7 @@ import org.broadinstitute.hellbender.utils.genotyper.PerReadAlleleLikelihoodMap;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFHeaderLines;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -45,13 +43,14 @@ public final class InbreedingCoeff extends InfoFieldAnnotation {
     private static final int MIN_SAMPLES = 10;
     private final Set<String> founderIds;
 
-    public InbreedingCoeff(final Set<String> founderIds){
+    public InbreedingCoeff(final Set<String> founderIds, final AnnotationGroup... groups){
+        super(groups);
         //If available, get the founder IDs and cache them. the IC will only be computed on founders then.
         this.founderIds = founderIds;
     }
 
-    public InbreedingCoeff(){
-        this(null);
+    public InbreedingCoeff(final AnnotationGroup... groups){
+        this(null, groups);
     }
 
     @Override
