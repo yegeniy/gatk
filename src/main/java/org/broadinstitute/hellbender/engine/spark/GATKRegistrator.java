@@ -26,6 +26,8 @@ public class GATKRegistrator implements KryoRegistrator {
         // We are tracking this issue with (#874)
         kryo.register(Collections.unmodifiableMap(Collections.EMPTY_MAP).getClass(), new UnmodifiableCollectionsSerializer());
 
+        kryo.register(Collections.unmodifiableList(Collections.EMPTY_LIST).getClass(), new UnmodifiableCollectionsSerializer());
+
         kryo.register(SAMRecordToGATKReadAdapter.class, new SAMRecordToGATKReadAdapterSerializer());
     }
 }
