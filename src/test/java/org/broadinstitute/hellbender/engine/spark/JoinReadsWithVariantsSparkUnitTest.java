@@ -9,7 +9,6 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.broadinstitute.hellbender.engine.dataflow.ReadsPreprocessingPipelineTestData;
 import org.broadinstitute.hellbender.engine.spark.datasources.ReadsSparkSource;
 import org.broadinstitute.hellbender.engine.spark.datasources.VariantsSparkSource;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
@@ -28,7 +27,7 @@ public class JoinReadsWithVariantsSparkUnitTest extends BaseTest {
         List<Class<?>> classes = Arrays.asList(Read.class, SAMRecord.class);
         for (int i = 0; i < classes.size(); ++i) {
             Class<?> c = classes.get(i);
-            ReadsPreprocessingPipelineTestData testData = new ReadsPreprocessingPipelineTestData(c);
+            ReadsPreprocessingPipelineSparkTestData testData = new ReadsPreprocessingPipelineSparkTestData(c);
 
             List<GATKRead> reads = testData.getReads();
             List<Variant> variantList = testData.getVariants();
