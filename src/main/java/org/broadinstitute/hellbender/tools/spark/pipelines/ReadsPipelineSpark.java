@@ -16,6 +16,7 @@ import org.broadinstitute.hellbender.cmdline.argumentcollections.OptionalInterva
 import org.broadinstitute.hellbender.cmdline.programgroups.SparkProgramGroup;
 import org.broadinstitute.hellbender.engine.dataflow.datasources.ReadContextData;
 import org.broadinstitute.hellbender.engine.dataflow.datasources.ReferenceDataflowSource;
+import org.broadinstitute.hellbender.engine.filters.ReadFilterLibrary;
 import org.broadinstitute.hellbender.engine.spark.AddContextDataToReadSpark;
 import org.broadinstitute.hellbender.engine.spark.SparkCommandLineProgram;
 import org.broadinstitute.hellbender.engine.spark.datasources.ReadsSparkSink;
@@ -77,7 +78,7 @@ public class ReadsPipelineSpark extends SparkCommandLineProgram {
         SAMFileHeader readsHeader = ReadsSparkSource.getHeader(ctx, bam);
         final List<SimpleInterval> intervals = intervalArgumentCollection.intervalsSpecified() ? intervalArgumentCollection.getIntervals(readsHeader.getSequenceDictionary())
                 : IntervalUtils.getAllIntervalsForReference(readsHeader.getSequenceDictionary());
-        JavaRDD<GATKRead> initialReads = readSource.getParallelReads(bam, intervals);
+        JavaRDD<GATKRead> initialReads = readSource.getParallelReads(bam, intervals).filter(ReadFilterLibrary.MAPPED::test);
 
         JavaRDD<GATKRead> markedReads = initialReads.map(new MarkDuplicatesStub());
         VariantsSparkSource variantsSparkSource = new VariantsSparkSource(ctx);

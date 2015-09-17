@@ -307,21 +307,23 @@ public final class BaseRecalibrationEngine implements Serializable {
         final int readLength = read.getBases().length;
         final boolean[] knownSitesArray = new boolean[readLength];//initializes to all false
         for ( final Locatable knownSite : knownSites ) {
-            int featureStartOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(ReadUtils.getSoftStart(read), read.getCigar(), knownSite.getStart(), ReadUtils.ClippingTail.LEFT_TAIL, true);
-            if( featureStartOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) {
-                featureStartOnRead = 0;
-            }
+            if (knownSite != null) {
+                int featureStartOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(ReadUtils.getSoftStart(read), read.getCigar(), knownSite.getStart(), ReadUtils.ClippingTail.LEFT_TAIL, true);
+                if (featureStartOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED) {
+                    featureStartOnRead = 0;
+                }
 
-            int featureEndOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(ReadUtils.getSoftStart(read), read.getCigar(), knownSite.getEnd(), ReadUtils.ClippingTail.LEFT_TAIL, true);
-            if( featureEndOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) {
-                featureEndOnRead = readLength;
-            }
+                int featureEndOnRead = ReadUtils.getReadCoordinateForReferenceCoordinate(ReadUtils.getSoftStart(read), read.getCigar(), knownSite.getEnd(), ReadUtils.ClippingTail.LEFT_TAIL, true);
+                if (featureEndOnRead == ReadUtils.CLIPPING_GOAL_NOT_REACHED) {
+                    featureEndOnRead = readLength;
+                }
 
-            if( featureStartOnRead > readLength ) {
-                featureStartOnRead = featureEndOnRead = readLength;
-            }
+                if (featureStartOnRead > readLength) {
+                    featureStartOnRead = featureEndOnRead = readLength;
+                }
 
-            Arrays.fill(knownSitesArray, Math.max(0, featureStartOnRead), Math.min(readLength, featureEndOnRead + 1), true);
+                Arrays.fill(knownSitesArray, Math.max(0, featureStartOnRead), Math.min(readLength, featureEndOnRead + 1), true);
+            }
         }
         return knownSitesArray;
     }

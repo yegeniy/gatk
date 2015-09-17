@@ -555,14 +555,4 @@ public final class SAMRecordToGATKReadAdapter implements GATKRead, Serializable 
         return "SAMRecord with no bases";
     }
 
-    /**
-    * Produces a SAMRecordToGATKReadAdapter with a 0L,0L UUID. Spark doesn't need the UUIDs
-    * and loading the reads twice (which can happen when caching is missing) prevents joining.
-    * @param sam Read to adapt
-    * @return adapted Read
-    */
-    public static GATKRead sparkReadAdapter(final SAMRecord sam) {
-        sam.setHeader(null);
-        return new SAMRecordToGATKReadAdapter(sam, new UUID(0L, 0L));
-    }
 }
