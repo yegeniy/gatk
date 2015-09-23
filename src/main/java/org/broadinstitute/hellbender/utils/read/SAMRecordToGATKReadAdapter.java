@@ -45,6 +45,7 @@ public class SAMRecordToGATKReadAdapter implements GATKRead, Serializable {
      * @return adapted Read
      */
     public static GATKRead sparkReadAdapter(final SAMRecord samRecord) {
+        samRecord.setHeader(null);
         return new SAMRecordToGATKReadAdapter(samRecord, new UUID(0L, 0L));
     }
 
