@@ -1,7 +1,6 @@
 package org.broadinstitute.hellbender.engine.spark;
 
 import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.broadinstitute.hellbender.engine.dataflow.datasources.ReadContextData;
@@ -15,6 +14,8 @@ import scala.Tuple2;
 
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 /**
  * AddContextDataToRead pairs reference bases and overlapping variants with each GATKRead in the RDD input.
@@ -34,11 +35,11 @@ public class AddContextDataToReadSpark {
             final JavaRDD<Variant> variants) {
 
         // This transform can currently only handle mapped reads
-        JavaRDD<GATKRead> mappedReads = reads.filter(read -> ReadFilterLibrary.MAPPED.test(read));
+        JavaRDD<GATKRead> mappedReads = reads.filter(read -> ReadFilterLibrary.MAPPED.test(read)).cache().setName("Mapped Reads");
 
         // Join Reads and Variants, Reads and ReferenceBases
-        JavaPairRDD<GATKRead, Iterable<Variant>> readiVariants = JoinReadsWithVariants.join(mappedReads, variants);
-        JavaPairRDD<GATKRead, ReferenceBases> readRefBases = JoinReadsWithRefBases.addBases(referenceDataflowSource, mappedReads);
+        JavaPairRDD<GATKRead, Iterable<Variant>> readiVariants = JoinReadsWithVariants.join(mappedReads, variants).setName("Reads with Variants");
+        JavaPairRDD<GATKRead, ReferenceBases> readRefBases = JoinReadsWithRefBases.addBases(referenceDataflowSource, mappedReads).setName("Reads with Ref Bases");
 
         // For testing we want to know that the reads from the KVs coming back from JoinReadsWithVariants.Join
         // and JoinReadsWithRefBases.Pair are the same reads from "reads".
@@ -49,11 +50,11 @@ public class AddContextDataToReadSpark {
             assertSameReads(mappedReads, readRefBases, readiVariants);
         }
 
-        JavaPairRDD<GATKRead, Tuple2<Iterable<Iterable<Variant>>, Iterable<ReferenceBases>>> cogroup = readiVariants.cogroup(readRefBases);
+        JavaPairRDD<GATKRead, Tuple2<Iterable<Iterable<Variant>>, Iterable<ReferenceBases>>> cogroup = readiVariants.cogroup(readRefBases).setName("reads with variants reads with reference pairs");
         return cogroup.mapToPair(in -> {
             ReadContextData readContextData = null;
             try {
-                List<Variant> lVariants = makeListFromIterableIterable(in._2()._1());
+                List<Variant> lVariants = flattenToList(in._2()._1());
 
                 ReferenceBases refBases = Iterables.getOnlyElement(in._2()._2());
                 readContextData = new ReadContextData(refBases, lVariants);
@@ -61,23 +62,14 @@ public class AddContextDataToReadSpark {
                 throw new GATKException.ShouldNeverReachHereException(e);
             }
             return new Tuple2<>(in._1(), readContextData);
-        });
+        }).setName("reads with context");
     }
 
-    private static <T> List<T> makeListFromIterableIterable(Iterable<Iterable<T>> iterables) {
-        List<Iterable<T>> listIterableT = Lists.newArrayList(iterables);
-        List<T> listT = Lists.newArrayList();
-        if (!listIterableT.isEmpty()) {
-            final Iterable<T> iterableT = Iterables.getOnlyElement(iterables);
-            // It's possible for the iterableT to contain only a null T, we don't
-            // want to include that.
-            final T next = iterableT.iterator().next();
-            if (next != null) {
-                listT = Lists.newArrayList(iterableT);
-            }
-        }
-        return listT;
-
+    private static <T> List<T> flattenToList(Iterable<Iterable<T>> iterables){
+        final Iterable<T> concat = Iterables.concat(iterables);
+        return StreamSupport.stream(concat.spliterator(), false)
+                .filter(a -> a != null)
+                .collect(Collectors.toList());
     }
 
     private static void assertSameReads(final JavaRDD<GATKRead> reads,

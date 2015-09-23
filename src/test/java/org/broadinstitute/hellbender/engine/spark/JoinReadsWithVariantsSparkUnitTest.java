@@ -53,4 +53,9 @@ public class JoinReadsWithVariantsSparkUnitTest extends BaseTest {
             Assert.assertEquals(hashVariants, expectedHashVariants);
         }
     }
+
+    @Test
+    public void testPairReadsAndVariants(){
+
+    }
 }
