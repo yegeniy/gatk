@@ -161,12 +161,12 @@ public final class ExomeReadCounts extends ReadWalker {
     /**
      * Exome file argument full name.
      */
-    protected static final String EXOME_FILE_FULL_NAME = "exome";
+    public static final String EXOME_FILE_FULL_NAME = "exome";
 
     /**
      * Exome file argument short name.
      */
-    protected static final String EXOME_FILE_SHORT_NAME = EXOME_FILE_FULL_NAME;
+    public static final String EXOME_FILE_SHORT_NAME = EXOME_FILE_FULL_NAME;
 
     /**
      * Exon output info argument full name

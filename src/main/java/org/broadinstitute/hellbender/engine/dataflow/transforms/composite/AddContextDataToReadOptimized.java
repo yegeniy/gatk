@@ -104,7 +104,7 @@ public class AddContextDataToReadOptimized {
          * creates a new shard, adding the specified variants.
          * Note that readContext is unchanged (including the variants it may refer to).
          */
-        public ContextShard withVariants(ArrayList<Variant> newVariants) {
+        public ContextShard withVariants(List<Variant> newVariants) {
             return new ContextShard(this.interval, new IntervalsSkipListOneContig<>(newVariants), reads, readContext);
         }
 
