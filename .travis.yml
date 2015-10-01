@@ -38,6 +38,7 @@ cache:
   directories:
   - ~/.gradle
   - $HOME/gcloud/
+  - src/test/resources/large/
 
 before_install:
 #download large files
