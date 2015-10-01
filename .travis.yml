@@ -9,9 +9,9 @@ jdk:
 - oraclejdk8
 env:
   matrix:
-  - CLOUD=mandatory
-  - CLOUD=todo
-  - CLOUD=false
+  - CLOUD=mandatory LARGE=true
+  - CLOUD=todo 
+  - CLOUD=false LARGE=true
   - DATAFLOW_RUNNER=SparkPipelineRunner CLOUD=false SPARK=false
   global:
   #gradle needs this
@@ -41,7 +41,7 @@ cache:
 
 before_install:
 #download large files
-- bash scripts/install_git_lfs.sh
+- if [ $LARGE == "true" ]; then bash scripts/install_git_lfs.sh; fi
 #setup google stuff
 - openssl aes-256-cbc -K $encrypted_29f3b7c4d8c3_key -iv $encrypted_29f3b7c4d8c3_iv
   -in resources_for_CI/servicekey.json.enc -out servicekey.json -d
