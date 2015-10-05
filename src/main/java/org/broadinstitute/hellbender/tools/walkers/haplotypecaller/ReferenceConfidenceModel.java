@@ -1,20 +1,23 @@
 package org.broadinstitute.hellbender.tools.walkers.haplotypecaller;
 
 import htsjdk.samtools.*;
+import htsjdk.samtools.util.Locatable;
 import htsjdk.variant.variantcontext.*;
 import htsjdk.variant.vcf.VCFHeaderLine;
 import htsjdk.variant.vcf.VCFSimpleHeaderLine;
+import org.broadinstitute.hellbender.engine.AlignmentContext;
 import org.broadinstitute.hellbender.utils.GenomeLoc;
 import org.broadinstitute.hellbender.utils.GenomeLocParser;
 import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.QualityUtils;
-import org.broadinstitute.hellbender.utils.genotyper.AlleleList;
-import org.broadinstitute.hellbender.utils.genotyper.IndexedAlleleList;
-import org.broadinstitute.hellbender.utils.genotyper.LikelihoodMatrix;
+import org.broadinstitute.hellbender.utils.genotyper.*;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
 import org.broadinstitute.hellbender.utils.pileup.PileupElement;
+import org.broadinstitute.hellbender.utils.pileup.ReadPileup;
 import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
+import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
+import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils;
 
 import java.io.File;
 import java.util.*;
@@ -25,21 +28,18 @@ import java.util.*;
  * This code can estimate the probability that the data for a single sample is consistent with a
  * well-determined REF/REF diploid genotype.
  *
- * User: depristo
- * Date: 6/21/13
- * Time: 12:52 PM
  */
-public class ReferenceConfidenceModel {
+public final class ReferenceConfidenceModel {
 
     private final GenomeLocParser genomeLocParser;
 
     private final SampleList samples;
     private final int indelInformativeDepthIndelSize;
 
-    private final static boolean WRITE_DEBUGGING_BAM = false;
+    private static final boolean WRITE_DEBUGGING_BAM = false;
     private final SAMFileWriter debuggingWriter;
 
-    private final static byte REF_MODEL_DELETION_QUAL = (byte) 30;
+    private static final byte REF_MODEL_DELETION_QUAL = (byte) 30;
 
     /**
      * Create a new ReferenceConfidenceModel
@@ -55,7 +55,7 @@ public class ReferenceConfidenceModel {
                                     final int indelInformativeDepthIndelSize) {
         if ( genomeLocParser == null ) throw new IllegalArgumentException("genomeLocParser cannot be null");
         if ( samples == null ) throw new IllegalArgumentException("samples cannot be null");
-        if ( samples.sampleCount() == 0) throw new IllegalArgumentException("samples cannot be empty");
+        if ( samples.numberOfSamples() == 0) throw new IllegalArgumentException("samples cannot be empty");
         if ( header == null ) throw new IllegalArgumentException("header cannot be empty");
         if ( indelInformativeDepthIndelSize < 0) throw new IllegalArgumentException("indelInformativeDepthIndelSize must be >= 1 but got " + indelInformativeDepthIndelSize);
 
@@ -126,21 +126,21 @@ public class ReferenceConfidenceModel {
         if ( paddedReferenceLoc == null ) throw new IllegalArgumentException("paddedReferenceLoc cannot be null");
         if ( activeRegion == null ) throw new IllegalArgumentException("activeRegion cannot be null");
         if ( readLikelihoods == null ) throw new IllegalArgumentException("readLikelihoods cannot be null");
-        if ( readLikelihoods.sampleCount() != 1 ) throw new IllegalArgumentException("readLikelihoods must contain exactly one sample but it contained " + readLikelihoods.sampleCount());
-        if ( refHaplotype.length() != activeRegion.getExtendedLoc().size() ) throw new IllegalArgumentException("refHaplotype " + refHaplotype.length() + " and activeRegion location size " + activeRegion.getLocation().size() + " are different");
+        if ( readLikelihoods.numberOfSamples() != 1 ) throw new IllegalArgumentException("readLikelihoods must contain exactly one sample but it contained " + readLikelihoods.sampleCount());
+        if ( refHaplotype.length() != activeRegion.getExtendedSpan().size() ) throw new IllegalArgumentException("refHaplotype " + refHaplotype.length() + " and activeRegion location size " + activeRegion.getLocation().size() + " are different");
         if ( ploidyModel == null) throw new IllegalArgumentException("the ploidy model cannot be null");
         if ( model == null) throw new IllegalArgumentException("the genotyping model cannot be null");
         final int ploidy = ploidyModel.samplePloidy(0); // the first sample = the only sample in reference-confidence mode.
 
-        final GenomeLoc refSpan = activeRegion.getLocation();
-        final List<ReadBackedPileup> refPileups = getPileupsOverReference(refHaplotype, calledHaplotypes, paddedReferenceLoc, activeRegion, refSpan, readLikelihoods);
+        final GenomeLoc refSpan = activeRegion.getSpan();
+        final List<ReadPileup> refPileups = getPileupsOverReference(refHaplotype, calledHaplotypes, paddedReferenceLoc, activeRegion, refSpan, readLikelihoods);
         final byte[] ref = refHaplotype.getBases();
         final List<VariantContext> results = new ArrayList<>(refSpan.size());
-        final String sampleName = readLikelihoods.sampleAt(0);
+        final String sampleName = readLikelihoods.getSample(0);
 
-        final int globalRefOffset = refSpan.getStart() - activeRegion.getExtendedLoc().getStart();
-        for ( final ReadBackedPileup pileup : refPileups ) {
-            final GenomeLoc curPos = pileup.getLocation();
+        final int globalRefOffset = refSpan.getStart() - activeRegion.getExtendedSpan().getStart();
+        for ( final ReadPileup pileup : refPileups ) {
+            final Locatable curPos = pileup.getLocation();
             final int offset = curPos.getStart() - refSpan.getStart();
 
             final VariantContext overlappingSite = getOverlappingVariantContext(curPos, variantCalls);
@@ -258,7 +258,7 @@ public class ReferenceConfidenceModel {
      */
     public RefVsAnyResult calcGenotypeLikelihoodsOfRefVsAny(final String sampleName, final int ploidy,
                                                         final GenotypingModel genotypingModel,
-                                                        final ReadBackedPileup pileup, final byte refBase, final byte minBaseQual, final MathUtils.RunningAverage hqSoftClips) {
+                                                        final ReadPileup pileup, final byte refBase, final byte minBaseQual, final MathUtils.RunningAverage hqSoftClips) {
         final AlleleList<Allele> alleleList = new IndexedAlleleList<>(Allele.create(refBase, true), GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE);
         // Notice that the sample name is rather irrelevant as this information is never used, just need to be the same in both lines bellow.
 
@@ -296,7 +296,7 @@ public class ReferenceConfidenceModel {
         final Map<String,List<GATKRead>> sampleToReads = Collections.singletonMap(sampleName, reads);
         final ReadLikelihoods<Allele> readLikelihoods = new ReadLikelihoods<>(new IndexedSampleList(sampleName),alleleList,sampleToReads);
         final LikelihoodMatrix<Allele> sampleLikelihoods = readLikelihoods.sampleMatrix(0);
-        final int readCount = sampleLikelihoods.readCount();
+        final int readCount = sampleLikelihoods.numberOfReads();
         for (int i = 0; i < readCount; i++) {
             sampleLikelihoods.set(0,i,likelihoods[0][i]);
             sampleLikelihoods.set(1,i,likelihoods[1][i]);
@@ -314,10 +314,10 @@ public class ReferenceConfidenceModel {
     /**
      * Get a list of pileups that span the entire active region span, in order, one for each position
      */
-    private List<ReadBackedPileup> getPileupsOverReference(final Haplotype refHaplotype,
+    private List<ReadPileup> getPileupsOverReference(final Haplotype refHaplotype,
                                                            final Collection<Haplotype> calledHaplotypes,
                                                            final GenomeLoc paddedReferenceLoc,
-                                                           final ActiveRegion activeRegion,
+                                                           final AssemblyRegion activeRegion,
                                                            final GenomeLoc activeRegionSpan,
                                                            final ReadLikelihoods<Haplotype> readLikelihoods) {
 
@@ -327,18 +327,18 @@ public class ReferenceConfidenceModel {
         if ( paddedReferenceLoc == null ) throw new IllegalArgumentException("paddedReferenceLoc cannot be null");
         if ( activeRegion == null ) throw new IllegalArgumentException("activeRegion cannot be null");
         if ( readLikelihoods == null ) throw new IllegalArgumentException("readLikelihoods cannot be null");
-        if ( readLikelihoods.sampleCount() != 1 ) throw new IllegalArgumentException("readLikelihoods must contain exactly one sample but it contained " + readLikelihoods.sampleCount());
+        if ( readLikelihoods.numberOfSamples() != 1 ) throw new IllegalArgumentException("readLikelihoods must contain exactly one sample but it contained " + readLikelihoods.sampleCount());
 
-        final List<GATKSAMRecord> reads = activeRegion.getReads();
+        final List<GATKRead> reads = activeRegion.getReads();
 
         if ( debuggingWriter != null )
-            for ( final GATKSAMRecord read : reads )
+            for ( final GATKRead read : reads )
                 debuggingWriter.addAlignment(read);
 
         final LocusIteratorByState libs = new LocusIteratorByState(reads.iterator(), LocusIteratorByState.NO_DOWNSAMPLING,
                 true, genomeLocParser, SampleListUtils.asSet(samples), false);
 
-        final List<ReadBackedPileup> pileups = new LinkedList<>();
+        final List<ReadPileup> pileups = new LinkedList<>();
         final int startPos = activeRegionSpan.getStart();
         AlignmentContext next = libs.advanceToLocus(startPos, true);
         for ( int curPos = startPos; curPos <= activeRegionSpan.getStop(); curPos++ ) {
@@ -347,7 +347,7 @@ public class ReferenceConfidenceModel {
                 next = libs.hasNext() ? libs.next() : null;
             } else {
                 // no data, so we create empty pileups
-                pileups.add(new ReadBackedPileupImpl(genomeLocParser.createGenomeLoc(activeRegionSpan.getContig(), curPos)));
+                pileups.add(new ReadPileup(genomeLocParser.createGenomeLoc(activeRegionSpan.getContig(), curPos)));
             }
         }
 
@@ -462,10 +462,10 @@ public class ReferenceConfidenceModel {
      * @param maxIndelSize maximum indel size to consider in the informativeness calculation
      * @return an integer >= 0
      */
-    protected final int calcNIndelInformativeReads(final ReadBackedPileup pileup, final int pileupOffsetIntoRef, final byte[] ref, final int maxIndelSize) {
+    protected final int calcNIndelInformativeReads(final ReadPileup pileup, final int pileupOffsetIntoRef, final byte[] ref, final int maxIndelSize) {
         int nInformative = 0;
         for ( final PileupElement p : pileup ) {
-            final GATKSAMRecord read = p.getRead();
+            final GATKRead read = p.getRead();
             final int offset = p.getOffset();
 
             // doesn't count as evidence
@@ -473,7 +473,7 @@ public class ReferenceConfidenceModel {
                 continue;
 
             // todo -- this code really should handle CIGARs directly instead of relying on the above tests
-            if ( isReadInformativeAboutIndelsOfSize(read.getReadBases(), read.getBaseQualities(), offset, ref, pileupOffsetIntoRef, maxIndelSize) ) {
+            if ( isReadInformativeAboutIndelsOfSize(read.getBases(), read.getBaseQualities(), offset, ref, pileupOffsetIntoRef, maxIndelSize) ) {
                 nInformative++;
                 if( nInformative > MAX_N_INDEL_INFORMATIVE_READS ) {
                     return MAX_N_INDEL_INFORMATIVE_READS;
@@ -491,9 +491,9 @@ public class ReferenceConfidenceModel {
      * @param paddedReferenceLoc the location spanning of the refBases -- can be longer than activeRegion.getLocation()
      * @return a reference haplotype
      */
-    public static Haplotype createReferenceHaplotype(final ActiveRegion activeRegion, final byte[] refBases, final GenomeLoc paddedReferenceLoc) {
+    public static Haplotype createReferenceHaplotype(final AssemblyRegion activeRegion, final byte[] refBases, final GenomeLoc paddedReferenceLoc) {
         final Haplotype refHaplotype = new Haplotype(refBases, true);
-        final int alignmentStart = activeRegion.getExtendedLoc().getStart() - paddedReferenceLoc.getStart();
+        final int alignmentStart = activeRegion.getExtendedSpan().getStart() - paddedReferenceLoc.getStart();
         if ( alignmentStart < 0 ) throw new IllegalStateException("Bad alignment start in createReferenceHaplotype " + alignmentStart);
         refHaplotype.setAlignmentStartHapwrtRef(alignmentStart);
         final Cigar c = new Cigar();
