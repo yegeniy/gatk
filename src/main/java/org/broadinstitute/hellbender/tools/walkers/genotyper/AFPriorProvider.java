@@ -23,14 +23,14 @@ public abstract class AFPriorProvider {
      * Returns the priors given a total-ploidy (the total number of genome copies across all samples).
      *
      * <p>
-     *     For performance sake the returned value is a direct reference ot the cached prior, so the client code
+     *     For performance's sake the returned value is a direct reference to the cached prior, so the client code
      *     must not modify its content.
      * </p>
      *
      * @param totalPloidy the requested total ploidy.
      *
      * @return never {@code null}, please do not modify its content. An array of {@code totalPloidy + 1} positions where
-     *  the ith position is the log10(prior) probability of the an alternative allele AC to be exactly <i>i</i> copies in
+     *  the ith position is the log(prior) probability of the an alternative allele AC to be exactly <i>i</i> copies in
      *  a draw of {@code totalPloidy} elements.
      */
     public double[] forTotalPloidy(final int totalPloidy) {

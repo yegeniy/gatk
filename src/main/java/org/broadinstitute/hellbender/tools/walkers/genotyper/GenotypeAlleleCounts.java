@@ -1,7 +1,6 @@
 package org.broadinstitute.hellbender.tools.walkers.genotyper;
 
 import htsjdk.variant.variantcontext.Allele;
-import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 
 import java.util.Arrays;
@@ -58,7 +57,8 @@ import java.util.List;
  */
 public final class GenotypeAlleleCounts implements Comparable<GenotypeAlleleCounts> {
 
-    private double log10CombinationCount;
+    //TODO: Can this be deleted?  It seems like it just gets passed around and set to -1 but is never really used.
+    private double logCombinationCount;
 
     /**
      * The ploidy of the genotype.
@@ -109,12 +109,12 @@ public final class GenotypeAlleleCounts implements Comparable<GenotypeAlleleCoun
         this(ploidy, index, sortedAlleleCounts, sortedAlleleCounts.length >> 1, -1);
     }
 
-    private GenotypeAlleleCounts(final int ploidy, final int index, final int[] sortedAlleleCounts, final int distinctAlleleCount, final double log10CombinationCount){
+    private GenotypeAlleleCounts(final int ploidy, final int index, final int[] sortedAlleleCounts, final int distinctAlleleCount, final double logCombinationCount){
         this.ploidy = ploidy;
         this.index = index;
         this.sortedAlleleCounts = sortedAlleleCounts;
         this.distinctAlleleCount = distinctAlleleCount;
-        this.log10CombinationCount = log10CombinationCount;
+        this.logCombinationCount = logCombinationCount;
     }
 
     /**
@@ -157,7 +157,7 @@ public final class GenotypeAlleleCounts implements Comparable<GenotypeAlleleCoun
             return;
         }
 
-        // Worth make this case faster.
+        // Worth it to make this case faster.
         if (distinctAlleleCount == 1) {
             if (ploidy == 1) {
                 sortedAlleleCounts[0]++;
@@ -220,7 +220,7 @@ public final class GenotypeAlleleCounts implements Comparable<GenotypeAlleleCoun
             }
         }
         index++;
-        log10CombinationCount = -1;
+        logCombinationCount = -1;
     }
 
     /**
@@ -640,7 +640,7 @@ public final class GenotypeAlleleCounts implements Comparable<GenotypeAlleleCoun
      * @return never {@code null}.
      */
     GenotypeAlleleCounts copy() {
-        return new GenotypeAlleleCounts(this.ploidy, this.index, this.sortedAlleleCounts.clone(), this.distinctAlleleCount, this.log10CombinationCount);
+        return new GenotypeAlleleCounts(this.ploidy, this.index, this.sortedAlleleCounts.clone(), this.distinctAlleleCount, this.logCombinationCount);
     }
 
     /**

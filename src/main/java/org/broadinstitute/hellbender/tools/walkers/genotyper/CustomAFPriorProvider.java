@@ -28,13 +28,13 @@ public final class CustomAFPriorProvider extends AFPriorProvider {
             if (Double.isNaN(value)) {
                 throw new IllegalArgumentException("NaN is not a valid prior AF value");
             }
-            priors[i++] = Math.log10(value);
+            priors[i++] = Math.log(value);
             sum += value;
         }
         if (sum >= 1) {
             throw new IllegalArgumentException("the AF prior value sum must be less than 1: " + sum);
         }
-        priors[0] = Math.log10(1 - sum);
+        priors[0] = Math.log(1 - sum);
     }
 
     @Override

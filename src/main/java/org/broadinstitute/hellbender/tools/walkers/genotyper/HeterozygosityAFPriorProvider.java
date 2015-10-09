@@ -12,7 +12,7 @@ import java.util.Arrays;
 public final class HeterozygosityAFPriorProvider extends AFPriorProvider {
 
     private final double heterozygosity;
-    private final double log10Heterozygosity;
+    private final double logHeterozygosity;
 
     /**
      * Construct a new provider given the heterozygosity value.
@@ -30,23 +30,23 @@ public final class HeterozygosityAFPriorProvider extends AFPriorProvider {
             throw new IllegalArgumentException("the heterozygosity cannot be a NaN");
         }
         this.heterozygosity = heterozygosity;
-        this.log10Heterozygosity = Math.log10(heterozygosity);
+        this.logHeterozygosity = Math.log(heterozygosity);
     }
 
     @Override
     protected double[] buildPriors(final int totalPloidy) {
         final double[] result = new double [totalPloidy + 1];
-        Arrays.fill(result, log10Heterozygosity);
+        Arrays.fill(result, logHeterozygosity);
         result[0] = Double.NEGATIVE_INFINITY;
-        MathUtils.Log10Cache.ensureCacheContains(totalPloidy);
+        MathUtils.LogCache.ensureCacheContains(totalPloidy);
         for (int i = 1; i <= totalPloidy; i++) {
-            result[i] -= MathUtils.Log10Cache.get(i);
+            result[i] -= MathUtils.LogCache.get(i);
         }
-        final double log10Sum = MathUtils.approximateLog10SumLog10(result);
-        if (log10Sum >= 0) {
+        final double logSum = MathUtils.approximateLogSumLog(result);
+        if (logSum >= 0) {
             throw new IllegalArgumentException("heterozygosity " + heterozygosity + " is too large of total ploidy " + totalPloidy);
         }
-        result[0] = MathUtils.log10OneMinusPow10(log10Sum);
+        result[0] = MathUtils.log1mexp(logSum);
         return result;
     }
 }

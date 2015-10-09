@@ -19,6 +19,8 @@ public final class MathUtils {
      */
     public static final double LOG_P_OF_ZERO = -1000000.0;
 
+    private static final double LOG1MEXP_THRESHOLD = Math.log(0.5);
+
     /**
      * Private constructor.  No instantiating this class!
      */
@@ -505,6 +507,29 @@ public final class MathUtils {
             final double d = Math.log(1 / x - 1) + Math.log(x);
             return Double.isInfinite(d) || d > 0.0 ? 0.0 : d;
         }
+    }
+
+    /**
+     * Calculates {@code log(1-exp(a))} without losing precision.
+     *
+     * <p>
+     *     This is based on the approach described in:
+     *
+     * </p>
+     * <p>
+     *     Maechler M, Accurately Computing log(1-exp(-|a|)) Assessed by the Rmpfr package, 2012 <br/>
+     *     <a ref="http://cran.r-project.org/web/packages/Rmpfr/vignettes/log1mexp-note.pdf">Online document</a>.
+     *
+     * </p>
+     *
+     * @param a the input exponent.
+     * @return {@link Double#NaN NaN} if {@code a > 0}, otherwise the corresponding value.
+     */
+    public static double log1mexp(final double a) {
+        if (a > 0) return Double.NaN;
+        if (a == 0) return Double.NEGATIVE_INFINITY;
+
+        return (a < LOG1MEXP_THRESHOLD) ? Math.log1p(-Math.exp(a)) : Math.log(-Math.expm1(a));
     }
 
     /**
