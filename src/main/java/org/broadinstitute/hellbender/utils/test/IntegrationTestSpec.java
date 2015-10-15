@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.utils.test;
 
+import htsjdk.samtools.ValidationStringency;
 import org.apache.commons.lang3.StringUtils;
 import org.broadinstitute.hellbender.CommandLineProgramTest;
 import org.broadinstitute.hellbender.exceptions.GATKException;
@@ -180,11 +181,16 @@ public final class IntegrationTestSpec {
         final List<String> actualLines = new XReadLines(resultFile).readLines().stream().filter(startsWithComment.negate()).collect(Collectors.toList());
         final List<String> expectedLines = new XReadLines(expectedFile).readLines().stream().filter(startsWithComment.negate()).collect(Collectors.toList());
 
-        Assert.assertEquals(actualLines.toString(), expectedLines.toString());
+        //For ease of debugging, we look at the lines first and only then check their counts
+        final int minLen = Math.min(actualLines.size(), expectedLines.size());
+        for (int i = 0; i < minLen; i++) {
+            Assert.assertEquals(actualLines.get(i).toString(), expectedLines.get(i).toString(), "Line number " + i + " (not counting comments)");
+        }
+        Assert.assertEquals (actualLines.size(), expectedLines.size(), "line counts");
     }
 
     public static void assertEqualBamFiles(final File resultFile, final File expectedFile) throws IOException {
-        SamAssertionUtils.assertSamsEqual(resultFile, expectedFile);
+        SamAssertionUtils.assertSamsEqual(resultFile, expectedFile, ValidationStringency.SILENT, null);
     }
 
 }

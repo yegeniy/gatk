@@ -288,8 +288,8 @@ public final class MathUtilsUnitTests extends BaseTest {
         Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.2), 1);
         Assert.assertEquals(MathUtils.compareDoubles(0.2, 0.1), -1);
         Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.1), 0);
-        Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.1+(1e-7)), 0);
-        Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.1+(1e-7), 1e-8), 1);
+        Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.1 + (1e-7)), 0);
+        Assert.assertEquals(MathUtils.compareDoubles(0.1, 0.1 + (1e-7), 1e-8), 1);
     }
 
     @Test

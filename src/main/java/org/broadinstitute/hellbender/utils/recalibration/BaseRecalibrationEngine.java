@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.utils.recalibration;
 
 import com.google.cloud.dataflow.sdk.transforms.SerializableFunction;
+import com.google.common.annotations.VisibleForTesting;
 import htsjdk.samtools.CigarElement;
 import htsjdk.samtools.SAMFileHeader;
 import htsjdk.samtools.util.Locatable;
@@ -9,12 +10,10 @@ import org.apache.logging.log4j.Logger;
 import org.broadinstitute.hellbender.engine.ReferenceDataSource;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.exceptions.UserException;
-import org.broadinstitute.hellbender.utils.SimpleInterval;
-import org.broadinstitute.hellbender.utils.recalibration.covariates.Covariate;
-import org.broadinstitute.hellbender.utils.recalibration.covariates.StandardCovariateList;
 import org.broadinstitute.hellbender.transformers.ReadTransformer;
 import org.broadinstitute.hellbender.utils.BaseUtils;
 import org.broadinstitute.hellbender.utils.MathUtils;
+import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.baq.BAQ;
 import org.broadinstitute.hellbender.utils.clipping.ReadClipper;
@@ -22,6 +21,8 @@ import org.broadinstitute.hellbender.utils.collections.NestedIntegerArray;
 import org.broadinstitute.hellbender.utils.read.AlignmentUtils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.read.ReadUtils;
+import org.broadinstitute.hellbender.utils.recalibration.covariates.Covariate;
+import org.broadinstitute.hellbender.utils.recalibration.covariates.StandardCovariateList;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -164,6 +165,34 @@ public final class BaseRecalibrationEngine implements Serializable {
                 rgDatum.combine(qualDatum);
             }
         }
+
+        roundDecimalPlaces(tables);
+    }
+
+    private static void roundDecimalPlaces(final RecalibrationTables rt) {
+        for (int i = 0; i < rt.numTables(); i++) {
+            for (NestedIntegerArray.Leaf<RecalDatum> leaf : rt.getTable(i).getAllLeaves()) {
+                leaf.value.setNumMismatches(roundToNDecimalPlaces(leaf.value.getNumMismatches(), RecalUtils.NUMBER_ERRORS_DECIMAL_PLACES));
+                leaf.value.setEmpiricalQuality(roundToNDecimalPlaces(leaf.value.getEmpiricalQuality(), RecalUtils.EMPIRICAL_QUAL_DECIMAL_PLACES));
+                leaf.value.setEstimatedQReported(roundToNDecimalPlaces(leaf.value.getEstimatedQReported(), RecalUtils.EMPIRICAL_Q_REPORTED_DECIMAL_PLACES));
+            }
+        }
+    }
+
+    /**
+     * Rounds the double to the given number of decimal places.
+     * For example, rounding 3.1415926 to 3 places would give 3.142.
+     * Not put into MathUtils because it uses the horrible path of going through a formatted String (to match String.format)
+     */
+    @VisibleForTesting
+    static double roundToNDecimalPlaces(final double in, final int n) {
+        if (n < 1) {
+            throw new IllegalArgumentException("cannot round to " + n + " decimal places");
+        }
+
+        //Note: this code is very ugly because it goes through parsing and unparsing.
+        //The reason is that we want to match what writing the recalibration tables down to a file would do.
+        return Double.valueOf(String.format("%." + n + "f", in));
     }
 
     /**

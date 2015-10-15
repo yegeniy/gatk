@@ -118,7 +118,7 @@ public final class BaseRecalibrator extends ReadWalker {
      */
     private QuantizationInfo quantizationInfo = null;
 
-    private static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
+    public static final String NO_DBSNP_EXCEPTION = "This calculation is critically dependent on being able to skip over known variant sites. Please provide a VCF file containing known sites of genetic variation.";
 
 
     @Override
