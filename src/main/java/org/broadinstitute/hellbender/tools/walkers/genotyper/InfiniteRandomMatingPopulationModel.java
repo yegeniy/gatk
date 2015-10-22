@@ -24,7 +24,6 @@ import java.util.List;
  */
 public final class InfiniteRandomMatingPopulationModel implements GenotypingModel {
 
-    private final int cachePloidyCapacity;
     private final int cacheAlleleCountCapacity;
     private ThreadLocal<GenotypeLikelihoodCalculator[][]> likelihoodCalculators;
 
@@ -36,7 +35,6 @@ public final class InfiniteRandomMatingPopulationModel implements GenotypingMode
     }
 
     public InfiniteRandomMatingPopulationModel(final int calculatorCachePloidyCapacity, final int calculatorCacheAlleleCapacity) {
-        cachePloidyCapacity = calculatorCachePloidyCapacity;
         cacheAlleleCountCapacity = calculatorCachePloidyCapacity;
         likelihoodCalculators = new ThreadLocal<GenotypeLikelihoodCalculator[][]>( ) {
             @Override

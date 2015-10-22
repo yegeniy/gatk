@@ -12,9 +12,9 @@ public final class GenotypingEngine {
      * Function that fills vector with allele frequency priors. By default, infinite-sites, neutral variation prior is used,
      * where Pr(AC=i) = theta/i where theta is heterozygosity
      * @param N                                Number of chromosomes
-     * @param priors                           (output) array to be filled with priors
+     * @param priors                           (output) array to be filled with log-priors
      * @param heterozygosity                   default heterozygosity to use, if inputPriors is empty
-     * @param inputPriors                      Input priors to use (in which case heterozygosity is ignored)
+     * @param inputPriors                      Input priors (NOT log priors!) to use (in which case heterozygosity is ignored)
      */
     public static void computeAlleleFrequencyPriors(final int N, final double[] priors, final double heterozygosity, final List<Double> inputPriors) {
 
@@ -32,7 +32,7 @@ public final class GenotypingEngine {
                 if (prior < 0.0) {
                     throw new UserException.BadArgumentValue("Bad argument: negative values not allowed", "inputPrior");
                 }
-                priors[idx++] = Math.log10(prior);
+                priors[idx++] = Math.log(prior);
                 sum += prior;
             }
         }
@@ -40,7 +40,7 @@ public final class GenotypingEngine {
             // for each i
             for (int i = 1; i <= N; i++) {
                 final double value = heterozygosity / (double)i;
-                priors[i] = Math.log10(value);
+                priors[i] = Math.log(value);
                 sum += value;
             }
         }
@@ -50,7 +50,7 @@ public final class GenotypingEngine {
             throw new UserException.BadArgumentValue("heterozygosity","The heterozygosity value is set too high relative to the number of samples to be processed, or invalid values specified if input priors were provided - try reducing heterozygosity value or correct input priors.");
         }
         // null frequency for AF=0 is (1 - sum(all other frequencies))
-        priors[0] = Math.log10(1.0 - sum);
+        priors[0] = Math.log(1.0 - sum);
     }
 
 }
