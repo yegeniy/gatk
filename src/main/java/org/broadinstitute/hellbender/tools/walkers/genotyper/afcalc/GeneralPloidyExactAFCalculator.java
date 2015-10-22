@@ -26,12 +26,12 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
     }
 
     @Override
-    protected AFCalculationResult computeLog10PNonRef(final VariantContext vc, final int defaultPloidy, final double[] log10AlleleFrequencyPriors, final StateTracker stateTracker) {
+    protected AFCalculationResult computeLogPNonRef(final VariantContext vc, final int defaultPloidy, final double[] logAlleleFrequencyPriors, final StateTracker stateTracker) {
         Utils.nonNull(vc, "vc is null");
-        Utils.nonNull(log10AlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
+        Utils.nonNull(logAlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
         Utils.nonNull(stateTracker, "stateTracker is null");
-        combineSinglePools(vc.getGenotypes(), defaultPloidy, vc.getNAlleles(), log10AlleleFrequencyPriors);
-        return getResultFromFinalState(vc, log10AlleleFrequencyPriors, stateTracker);
+        combineSinglePools(vc.getGenotypes(), defaultPloidy, vc.getNAlleles(), logAlleleFrequencyPriors);
+        return getResultFromFinalState(vc, logAlleleFrequencyPriors, stateTracker);
     }
 
     /**
@@ -54,7 +54,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         public void add(final ExactACset set) {
             alleleCountSetList.add(set);
             conformationMap.put(set.getACcounts(), set);
-            final double likelihood = set.getLog10Likelihoods()[0];
+            final double likelihood = set.getLogLikelihoods()[0];
 
             if (likelihood > maxLikelihood ) {
                 maxLikelihood = likelihood;
@@ -66,11 +66,11 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         }
 
         public double getLikelihoodOfConformation(final int[] ac) {
-            return conformationMap.get(new ExactACcounts(ac)).getLog10Likelihoods()[0];
+            return conformationMap.get(new ExactACcounts(ac)).getLogLikelihoods()[0];
         }
 
         public double getGLOfACZero() {
-            return alleleCountSetList.get(0).getLog10Likelihoods()[0]; // AC 0 is always at beginning of list
+            return alleleCountSetList.get(0).getLogLikelihoods()[0]; // AC 0 is always at beginning of list
         }
 
         public int getLength() {
@@ -128,7 +128,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         final int numAltAlleles = numAlleles - 1;
         final int[] zeroCounts = new int[numAlleles];
         final ExactACset set = new ExactACset(1, new ExactACcounts(zeroCounts));
-        set.getLog10Likelihoods()[0] = 0.0;
+        set.getLogLikelihoods()[0] = 0.0;
         final StateTracker stateTracker = getStateTracker(false,numAltAlleles);
         int combinedPloidy = 0;
         CombinedPoolLikelihoods combinedPoolLikelihoods = new CombinedPoolLikelihoods();
@@ -294,7 +294,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         // special case for k = 0 over all k
         if ( totalAltK == 0 ) {   // all-ref case
             final double log10Lof0 = firstGLs.getGLOfACZero() + secondGL[HOM_REF_INDEX];
-            set.getLog10Likelihoods()[0] = log10Lof0;
+            set.getLogLikelihoods()[0] = log10Lof0;
             stateTracker.setLog10LikelihoodOfAFzero(log10Lof0);
             stateTracker.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
             return log10Lof0;
@@ -310,7 +310,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
 
             // for current conformation, get all possible ways to break vector K into two components G1 and G2
             final SumIterator innerIterator = new SumIterator(numAlleles,ploidy2);
-            set.getLog10Likelihoods()[0] = Double.NEGATIVE_INFINITY;
+            set.getLogLikelihoods()[0] = Double.NEGATIVE_INFINITY;
             while (innerIterator.hasNext()) {
                 // check if breaking current conformation into g1 and g2 is feasible.
                 final int[] acCount2 = innerIterator.getCurrentVector();
@@ -326,16 +326,16 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
                         final double num2 = MathUtils.log10MultinomialCoefficient(ploidy2, acCount2);
                         final double sum = firstGL + gl2 + num1 + num2;
 
-                        set.getLog10Likelihoods()[0] = MathUtils.approximateLog10SumLog10(set.getLog10Likelihoods()[0], sum);
+                        set.getLogLikelihoods()[0] = MathUtils.approximateLog10SumLog10(set.getLogLikelihoods()[0], sum);
                     }
                 }
                 innerIterator.next();
             }
 
-            set.getLog10Likelihoods()[0] += denom;
+            set.getLogLikelihoods()[0] += denom;
         }
 
-        double log10LofK = set.getLog10Likelihoods()[0];
+        double log10LofK = set.getLogLikelihoods()[0];
 
         // update the MLE if necessary
         final int altCounts[] = Arrays.copyOfRange(set.getACcounts().getCounts(), 1, set.getACcounts().getCounts().length);

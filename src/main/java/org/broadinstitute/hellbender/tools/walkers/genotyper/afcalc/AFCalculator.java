@@ -25,14 +25,14 @@ public abstract class AFCalculator {
      *
      * @param vc the VariantContext holding the alleles and sample information.  The VariantContext
      *           must have at least 1 alternative allele
-     * @param log10AlleleFrequencyPriors a prior vector nSamples x 2 in length indicating the Pr(AF = i)
+     * @param logAlleleFrequencyPriors a prior vector nSamples x 2 in length indicating the Pr(AF = i)
      * @return result (for programming convenience)
      */
-    public AFCalculationResult getLog10PNonRef(final VariantContext vc, final int defaultPloidy, final int maximumAlternativeAlleles, final double[] log10AlleleFrequencyPriors) {
+    public AFCalculationResult getLogPNonRef(final VariantContext vc, final int defaultPloidy, final int maximumAlternativeAlleles, final double[] logAlleleFrequencyPriors) {
         Utils.nonNull(vc, "VariantContext cannot be null");
-        Utils.nonNull( log10AlleleFrequencyPriors == null, "priors vector cannot be null");
+        Utils.nonNull( logAlleleFrequencyPriors == null, "priors vector cannot be null");
         if ( vc.getNAlleles() == 1 ) {
-            throw new IllegalArgumentException("VariantContext has only a single reference allele, but getLog10PNonRef requires at least one at all " + vc);
+            throw new IllegalArgumentException("VariantContext has only a single reference allele, but getLogPNonRef requires at least one at all " + vc);
         }
 
         // reset the result, so we can store our new result there
@@ -40,7 +40,7 @@ public abstract class AFCalculator {
 
         final VariantContext vcWorking = reduceScope(vc,defaultPloidy, maximumAlternativeAlleles);
 
-        return computeLog10PNonRef(vcWorking, defaultPloidy, log10AlleleFrequencyPriors, stateTracker);
+        return computeLogPNonRef(vcWorking, defaultPloidy, logAlleleFrequencyPriors, stateTracker);
     }
 
     /**
@@ -49,15 +49,15 @@ public abstract class AFCalculator {
      * Assumes that stateTracker has been updated accordingly
      *
      * @param vcWorking the VariantContext we actually used as input to the calc model (after reduction)
-     * @param log10AlleleFrequencyPriors the priors by AC vector
+     * @param logAlleleFrequencyPriors the priors by AC vector
      * @return a AFCalculationResult describing the result of this calculation
      */
-    protected AFCalculationResult getResultFromFinalState(final VariantContext vcWorking, final double[] log10AlleleFrequencyPriors, final StateTracker stateTracker) {
+    protected AFCalculationResult getResultFromFinalState(final VariantContext vcWorking, final double[] logAlleleFrequencyPriors, final StateTracker stateTracker) {
         Utils.nonNull(vcWorking, "vcWorking cannot be null");
-        Utils.nonNull(log10AlleleFrequencyPriors, "log10AlleleFrequencyPriors cannot be null");
+        Utils.nonNull(logAlleleFrequencyPriors, "logAlleleFrequencyPriors cannot be null");
 
         stateTracker.setAllelesUsedInGenotyping(vcWorking.getAlleles());
-        return stateTracker.toAFCalculationResult(log10AlleleFrequencyPriors);
+        return stateTracker.toAFCalculationResult(logAlleleFrequencyPriors);
     }
 
     // ---------------------------------------------------------------------------
@@ -70,7 +70,7 @@ public abstract class AFCalculator {
     /**
      * Look at VC and perhaps return a new one of reduced complexity, if that's necessary
      *
-     * Used before the call to computeLog10PNonRef to simply the calculation job at hand,
+     * Used before the call to computeLogPNonRef to simply the calculation job at hand,
      * if vc exceeds bounds.  For example, if VC has 100 alt alleles this function
      * may decide to only genotype the best 2 of them.
      *
@@ -80,15 +80,15 @@ public abstract class AFCalculator {
     protected abstract VariantContext reduceScope(final VariantContext vc, final int defaultPloidy, final int maximumAlternativeAlleles);
 
     /**
-     * Actually carry out the log10PNonRef calculation on vc, storing results in results
+     * Actually carry out the logPNonRef calculation on vc, storing results in results
      *
      * @param vc                                variant context with alleles and genotype likelihoods,
      *                                          must have at least one alt allele
-     * @param log10AlleleFrequencyPriors        priors
+     * @param logAlleleFrequencyPriors        priors
      * @return a AFCalcResult object describing the results of this calculation
      */
-    protected abstract AFCalculationResult computeLog10PNonRef(final VariantContext vc, final int defaultPloidy,
-                                                        final double[] log10AlleleFrequencyPriors, final StateTracker stateTracker);
+    protected abstract AFCalculationResult computeLogPNonRef(final VariantContext vc, final int defaultPloidy,
+                                                             final double[] logAlleleFrequencyPriors, final StateTracker stateTracker);
 
     /**
      * Subset VC to the just allelesToUse, updating genotype likelihoods

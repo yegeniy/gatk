@@ -7,7 +7,6 @@ import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.test.BaseTest;
-import org.broadinstitute.hellbender.utils.variant.HomoSapiensConstants;
 import org.testng.Assert;
 import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
@@ -350,7 +349,7 @@ public final class AFCalculationUnitTest extends BaseTest {
         final VariantContextBuilder vcb = new VariantContextBuilder(vcRoot);
         vcb.genotypes(genotypes);
 
-        final AFCalculationResult resultTracker = testBuilder.makeModel().getLog10PNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
+        final AFCalculationResult resultTracker = testBuilder.makeModel().getLogPNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
 
         Assert.assertEquals(resultTracker.getLog10PosteriorOfAFGT0(), Math.log10(expectedPNonRef), tolerance,
                 "Actual pNonRef not within tolerance " + tolerance + " of expected");
@@ -434,8 +433,8 @@ public final class AFCalculationUnitTest extends BaseTest {
         final VariantContextBuilder vcb = new VariantContextBuilder("x", "1", 1, 1, Arrays.asList(A, C));
         vcb.genotypes(genotypes);
 
-        final AFCalculationResult refResult = refBuilder.makeModel().getLog10PNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
-        final AFCalculationResult testResult = testBuilder.makeModel().getLog10PNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
+        final AFCalculationResult refResult = refBuilder.makeModel().getLogPNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
+        final AFCalculationResult testResult = testBuilder.makeModel().getLogPNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
 
         final double tolerance = 1e-3;
         Assert.assertEquals(testResult.getLog10PosteriorOfAFGT0(), refResult.getLog10PosteriorOfAFGT0(), tolerance,
@@ -637,7 +636,7 @@ public final class AFCalculationUnitTest extends BaseTest {
         final AFCalculator calc = testBuilder.makeModel();
         final double[] priors = testBuilder.makePriors();
         final VariantContext vc = testBuilder.makeACTest(ACs, 0, nonTypePL);
-        final AFCalculationResult result = calc.getLog10PNonRef(vc, PLOIDY, testBuilder.numAltAlleles, priors);
+        final AFCalculationResult result = calc.getLogPNonRef(vc, PLOIDY, testBuilder.numAltAlleles, priors);
 
         boolean anyPoly = false;
         for ( final boolean onePoly : expectedPoly ) anyPoly = anyPoly || onePoly;

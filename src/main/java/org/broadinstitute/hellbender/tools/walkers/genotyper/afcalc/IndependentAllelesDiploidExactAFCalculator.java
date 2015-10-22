@@ -83,15 +83,15 @@ import java.util.*;
     }
 
     @Override
-    public AFCalculationResult computeLog10PNonRef(final VariantContext vc,
-                                                   final int defaultPloidy,
-                                                   final double[] log10AlleleFrequencyPriors,
-                                                   final StateTracker stateTracker) {
+    public AFCalculationResult computeLogPNonRef(final VariantContext vc,
+                                                 final int defaultPloidy,
+                                                 final double[] logAlleleFrequencyPriors,
+                                                 final StateTracker stateTracker) {
         Utils.nonNull(vc, "vc is null");
-        Utils.nonNull(log10AlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
+        Utils.nonNull(logAlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
         Utils.nonNull(stateTracker, "stateTracker is null");
 
-        final List<AFCalculationResult> independentResultTrackers = computeAlleleIndependentExact(vc, defaultPloidy, log10AlleleFrequencyPriors);
+        final List<AFCalculationResult> independentResultTrackers = computeAlleleIndependentExact(vc, defaultPloidy, logAlleleFrequencyPriors);
 
         if ( independentResultTrackers.isEmpty() ) {
             throw new IllegalStateException("Independent alleles model returned an empty list of results at VC " + vc);
@@ -101,7 +101,7 @@ import java.util.*;
             // fast path for the very common bi-allelic use case
             return independentResultTrackers.get(0);
         } else {
-            final AFCalculationResult combinedAltAllelesResult = combineAltAlleleIndependentExact(vc,defaultPloidy,log10AlleleFrequencyPriors);
+            final AFCalculationResult combinedAltAllelesResult = combineAltAlleleIndependentExact(vc,defaultPloidy, logAlleleFrequencyPriors);
             // we are a multi-allelic, so we need to actually combine the results
             final List<AFCalculationResult> withMultiAllelicPriors = applyMultiAllelicPriors(independentResultTrackers);
             return combineIndependentPNonRefs(vc, withMultiAllelicPriors, combinedAltAllelesResult);
@@ -110,7 +110,7 @@ import java.util.*;
 
     private AFCalculationResult combineAltAlleleIndependentExact(final VariantContext vc, final int defaultPloidy, final double[] log10AlleleFrequencyPriors) {
         final VariantContext combinedAltAllelesVariantContext = makeCombinedAltAllelesVariantContext(vc);
-        return biAlleleExactModel.getLog10PNonRef(combinedAltAllelesVariantContext, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
+        return biAlleleExactModel.getLogPNonRef(combinedAltAllelesVariantContext, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
     }
 
     private static VariantContext makeCombinedAltAllelesVariantContext(final VariantContext vc) {
@@ -165,7 +165,7 @@ import java.util.*;
         final List<AFCalculationResult> results = new LinkedList<>();
 
         for ( final VariantContext subvc : makeAlleleConditionalContexts(vc) ) {
-            final AFCalculationResult resultTracker = biAlleleExactModel.getLog10PNonRef(subvc, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
+            final AFCalculationResult resultTracker = biAlleleExactModel.getLogPNonRef(subvc, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
             results.add(resultTracker);
         }
 

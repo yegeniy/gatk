@@ -16,24 +16,24 @@ import java.util.Map;
 final class OriginalDiploidExactAFCalculator extends DiploidExactAFCalculator {
 
     @Override
-    protected AFCalculationResult computeLog10PNonRef(final VariantContext vc,
-                                                      @SuppressWarnings("unused")
-                                                      final int defaultPloidy,
-                                                      final double[] log10AlleleFrequencyPriors,
-                                                      final StateTracker stateTracker) {
+    protected AFCalculationResult computeLogPNonRef(final VariantContext vc,
+                                                    @SuppressWarnings("unused")
+                                                    final int defaultPloidy,
+                                                    final double[] logAlleleFrequencyPriors,
+                                                    final StateTracker stateTracker) {
         Utils.nonNull(vc, "vc is null");
-        Utils.nonNull(log10AlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
+        Utils.nonNull(logAlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
         Utils.nonNull(stateTracker, "stateTracker is null");
 
-        final double[] log10AlleleFrequencyLikelihoods = new double[log10AlleleFrequencyPriors.length];
-        final double[] log10AlleleFrequencyPosteriors  = new double[log10AlleleFrequencyPriors.length];
-        final Pair<Integer, Integer> result = linearExact(vc, log10AlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
+        final double[] log10AlleleFrequencyLikelihoods = new double[logAlleleFrequencyPriors.length];
+        final double[] log10AlleleFrequencyPosteriors  = new double[logAlleleFrequencyPriors.length];
+        final Pair<Integer, Integer> result = linearExact(vc, logAlleleFrequencyPriors, log10AlleleFrequencyLikelihoods, log10AlleleFrequencyPosteriors);
         final int lastK = result.getLeft();
         final int mleK = result.getRight();
 
         final double log10LikelihoodAFGt0 = lastK == 0 ? MathUtils.LOG10_P_OF_ZERO : MathUtils.log10SumLog10(log10AlleleFrequencyLikelihoods, 1, lastK+1);
         final double[] log10Likelihoods = new double[]{log10AlleleFrequencyLikelihoods[0], log10LikelihoodAFGt0};
-        final double[] log10Priors = new double[]{log10AlleleFrequencyPriors[0], MathUtils.log10SumLog10(log10AlleleFrequencyPriors, 1)};
+        final double[] log10Priors = new double[]{logAlleleFrequencyPriors[0], MathUtils.log10SumLog10(logAlleleFrequencyPriors, 1)};
         final double[] log10Posteriors = MathUtils.vectorSum(log10Likelihoods, log10Priors);
 
         final double log10PRef = log10Posteriors[1] > log10Posteriors[0] ? MathUtils.LOG10_P_OF_ZERO : 0.0;

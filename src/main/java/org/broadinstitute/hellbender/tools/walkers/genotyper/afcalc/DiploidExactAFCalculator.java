@@ -12,8 +12,8 @@ import java.util.*;
 
 public abstract class DiploidExactAFCalculator extends ExactAFCalculator {
 
-    protected abstract AFCalculationResult computeLog10PNonRef(final VariantContext vc, final int defaultPloidy,
-                                                      final double[] log10AlleleFrequencyPriors, final StateTracker stateTracker);
+    protected abstract AFCalculationResult computeLogPNonRef(final VariantContext vc, final int defaultPloidy,
+                                                             final double[] logAlleleFrequencyPriors, final StateTracker stateTracker);
 
     @Override
     protected final GenotypesContext reduceScopeGenotypes(final VariantContext vc, final int defaultPloidy, final List<Allele> allelesToUse) {

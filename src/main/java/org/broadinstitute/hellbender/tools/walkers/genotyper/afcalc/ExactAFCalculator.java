@@ -60,7 +60,7 @@ abstract class ExactAFCalculator extends AFCalculator {
     }
 
     /**
-     * Unpack GenotypesContext into arraylist of doubel values
+     * Unpack GenotypesContext into arraylist of double values
      * @param GLs            Input genotype context
      * @return               ArrayList of doubles corresponding to GL vectors
      */

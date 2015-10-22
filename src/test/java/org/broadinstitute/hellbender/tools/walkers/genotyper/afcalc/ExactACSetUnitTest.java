@@ -13,7 +13,7 @@ public final class ExactACSetUnitTest {
         ExactACset acs1 = new ExactACset(size1, ec1);
         Assert.assertEquals(acs1.getACsum(), MathUtils.sum(c1));
         Assert.assertEquals(acs1.getACcounts(), ec1);
-        Assert.assertEquals(acs1.getLog10Likelihoods().length, size1);
+        Assert.assertEquals(acs1.getLogLikelihoods().length, size1);
 
         final int[] c2 = {1,2,3};
         final int size2 = 7;

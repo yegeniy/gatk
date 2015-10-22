@@ -12,14 +12,14 @@ public final class ExactACset {
     private final ExactACcounts acCounts;
 
     // the column of the matrix
-    private final double[] log10Likelihoods;
+    private final double[] logLikelihoods;
 
     int sum = -1;
 
     public ExactACset(final int size, final ExactACcounts ACcounts) {
         this.acCounts = ACcounts;
-        log10Likelihoods = new double[size];
-        Arrays.fill(log10Likelihoods, Double.NEGATIVE_INFINITY);
+        logLikelihoods = new double[size];
+        Arrays.fill(logLikelihoods, Double.NEGATIVE_INFINITY);
     }
 
     /**
@@ -45,8 +45,8 @@ public final class ExactACset {
     public ExactACcounts getACcounts() {
         return acCounts;
     }
-
-    public double[] getLog10Likelihoods() {
-        return log10Likelihoods;
+    
+    public double[] getLogLikelihoods() {
+        return logLikelihoods;
     }
 }
