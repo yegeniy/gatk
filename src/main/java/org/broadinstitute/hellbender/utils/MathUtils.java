@@ -19,6 +19,8 @@ public final class MathUtils {
      */
     public static final double LOG_P_OF_ZERO = -1000000.0;
 
+    public static final double LOG10_TO_LOG_CONVERSION = Math.log(10);
+
     private static final double LOG1MEXP_THRESHOLD = Math.log(0.5);
 
     /**

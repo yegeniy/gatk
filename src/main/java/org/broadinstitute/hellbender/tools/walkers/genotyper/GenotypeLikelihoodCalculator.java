@@ -153,6 +153,7 @@ public final class GenotypeLikelihoodCalculator {
     /**
      * Creates a new calculator providing its ploidy and number of genotyping alleles.
      */
+    //TODO: is logPloidy (which is used to set logCache) redundant w/ MathUtils
     protected GenotypeLikelihoodCalculator(final int ploidy, final int alleleCount,
                                            final int[][] alleleFirstGenotypeOffsetByPloidy,
                                            final GenotypeAlleleCounts[][] genotypeTableByPloidy,
@@ -301,10 +302,7 @@ public final class GenotypeLikelihoodCalculator {
         final double[][] genotypeLikelihoodByRead = genotypeLikelihoodByRead(readLikelihoodComponentsByAlleleCount,readCount);
         final double[] readLikelihoodsByGenotypeIndex = genotypeLikelihoods(genotypeLikelihoodByRead, readCount);
 
-        //TODO: GenotypeLikelihoods is in htsjdk and we need to either purge log10 from there or
-        //TODO  encapsulate it here
-        //TODO  Note that log10 only appears 14 times in the whole htsjdk codebase, so it would not be a large task
-        //TODO  to replace it or, more conservatively, shadow all log10 methods with natural log versions
+        //TODO: GenotypeLikelihoods is in htsjdk and we need to encapsulate it
         return GenotypeLikelihoods.fromLog10Likelihoods(readLikelihoodsByGenotypeIndex);
     }
 
@@ -385,6 +383,7 @@ public final class GenotypeLikelihoodCalculator {
      * General genotype likelihood component by thread calculator. It does not make any assumption in the exact
      * number of alleles present in the genotype.
      */
+    //TODO: I think likelihoods here are really log likelihoods
     private void manyComponentGenotypeLikelihoodByRead(final GenotypeAlleleCounts genotypeAlleleCounts,
                                                        final double[] likelihoodByRead,
                                                        final double[]readLikelihoodComponentsByAlleleCount,
@@ -407,6 +406,7 @@ public final class GenotypeLikelihoodCalculator {
 
         // Calculate the likelihood per read.
         for (int r = 0, readDataOffset = 0; r < readCount; r++, readDataOffset += maximumDistinctAllelesInGenotype) {
+            //TODO: fix this
             likelihoodByRead[r] = MathUtils.approximate10SumLog10(readGenotypeLikelihoodComponents, readDataOffset, readDataOffset + componentCount);
         }
     }
@@ -426,8 +426,11 @@ public final class GenotypeLikelihoodCalculator {
         int allele0LnLkOffset = readCount * ((ploidy + 1) * allele0 + freq0);
         int allele1LnLkOffset = readCount * ((ploidy + 1) * allele1 + freq1);
         for (int r = 0; r < readCount; r++) {
+            //TODO: change these variable names
             final double lnLk0 = readLikelihoodComponentsByAlleleCount[allele0LnLkOffset++];
             final double lnLk1 = readLikelihoodComponentsByAlleleCount[allele1LnLkOffset++];
+
+            //TODO: fix this
             likelihoodByRead[r] = MathUtils.approximateLog10SumLog10(lnLk0, lnLk1);
         }
     }

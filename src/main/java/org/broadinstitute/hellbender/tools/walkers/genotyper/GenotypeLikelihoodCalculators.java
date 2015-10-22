@@ -23,6 +23,7 @@ public final class GenotypeLikelihoodCalculators {
      */
     private int maximumPloidy = 2; // its initial value is the initial capacity of the shared tables.
 
+    //TODO: this is redundant with MathUtils' logCache
     /**
      * Cached log10 values for the first integer up to the maximum ploidy requested thus far.
      */
@@ -272,6 +273,8 @@ public final class GenotypeLikelihoodCalculators {
         }
 
         // At this point the tables must have at least the requested capacity, likely to be much more.
+        //TODO: I might remove the last argument of GenotypesLikelihoodCalculator's constructor since it seems just to
+        //set a log cache, which is already done by MathUtils
         return new GenotypeLikelihoodCalculator(ploidy,alleleCount,alleleFirstGenotypeOffsetByPloidy,genotypeTableByPloidy,ploidyLog10);
     }
 
@@ -316,6 +319,7 @@ public final class GenotypeLikelihoodCalculators {
         }
     }
 
+    //TODO: this seems redundant with MathUtils logCache
     /**
      * Extends the existing {@link #ploidyLog10} with more log10 as needed by maximum-ploidy expansion.
      * @param newMaximumPloidy the new maximum ploidy.
