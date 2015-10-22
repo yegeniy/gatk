@@ -13,26 +13,10 @@ import java.util.Collections;
 
 public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
 
-    // For now we're retaining hardcoded paths to the test files on the broad server
-    // Any tests dependent on these files are in the testNG group "requiresRemoteAccess"
-    // To enable these tests (which require access to the  broad files), set remoteTestsEnabled=true
-    private static final boolean remoteTestsEnabled=false;
-
-    private static final String b36KGReference = "/humgen/1kg/reference/human_b36_both.fasta";
-    private static final String b37KGReference = "/humgen/1kg/reference/human_g1k_v37.fasta";
-    private static final String GATKDataLocation = "/humgen/gsa-hpprojects/GATK/data/";
-    private static final String comparisonDataLocation = GATKDataLocation + "Comparisons/";
-    private static final String validationDataLocation = GATKDataLocation + "Validation_Data/";
-
-    // these two files are used only by the 3 concordance/discordance tests
-    private static final String b37hapmapGenotypes = comparisonDataLocation + "Validated/HapMap/3.3/genotypes_r27_nr.b37_fwd.vcf";
-    private static final String hg19Reference = "/seq/references/Homo_sapiens_assembly19/v1/Homo_sapiens_assembly19.fasta";
-
-
     private static String baseTestString(String args, String testFile) {
-        return " -R " + b36KGReference
-                    + " --variant " + testFile
+        return " --variant " + testFile
                     + " -o %s "
+                    + " -sr "   // hidden option to suppress local reference paths from being emitted
                     + " " + args;
     }
 
@@ -68,50 +52,50 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testSimpleExpressionSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testRepeatedLineSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "test.dup.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1 -sn A -sn B -sn C ", testFile),
+                baseTestString(" -sn A -sn B -sn C ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_RepeatedLineSelection.vcf")
         );
 
         spec.executeTest("testRepeatedLineSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testComplexSelection()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -L 1 -env -ef -select 'DP < 250'", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -sn A -se '[CDH]' -sf " + samplesFile + " -L 1 -env -ef -select 'DP < 250'", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_ComplexSelection.vcf")
         );
 
         spec.executeTest("testComplexSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testComplexSelectionWithNonExistingSamples()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES -sn A -se '[CDH]' -sn Z -sn T -sf "
-                        + samplesFile + " -L 1 -env -ef -select 'DP < 250' ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1 --ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES -sn A -se '[CDH]' -sn Z -sn T -sf "
+                        + samplesFile + " -env -ef -select 'DP < 250' ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_ComplexSelectionWithNonExistingSamples.vcf")
         );
         spec.executeTest("testComplexSelectionWithNonExistingSamples--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testNonExistingFieldSelection()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        final String testFile = test_filtered_maf_vcf;
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1 -env -ef -select 'foo!=0||DP>0' ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1 -env -ef -select 'foo!=0||DP>0' ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_NonExistingSelection.vcf")
         );
 
@@ -122,13 +106,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding samples from file and sample name
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSampleExclusionFromFileAndSeparateSample()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1:1-1000000 -xl_sn A -xl_sf " + samplesFile, testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1:1-1000000 -xl_sn A -xl_sf " + samplesFile, testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_SampleExclusionFromFileAndSeparateSample.vcf")
         );
 
@@ -138,13 +122,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding samples from file
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSampleExclusionJustFromFile()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1:1-1000000 -xl_sf " + samplesFile, testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1:1-1000000 -xl_sf " + samplesFile, testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_SampleExclusionJustFromFile.vcf")
         );
 
@@ -154,12 +138,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding samples from expression
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSampleExclusionJustFromExpression()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        final String testFile = test_filtered_maf_vcf;
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1:1-1000000 -xl_se '[CDH]' ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1:1-1000000 -xl_se '[CDH]' ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_SampleExclusionJustFromExpression.vcf")
         );
 
@@ -169,12 +153,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding samples from negation expression
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSampleExclusionJustFromNegationExpression()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
+        final String testFile = test_filtered_maf_vcf;
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1:1-1000000 -se '[^CDH]' ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1:1-1000000 -se '[^CDH]' ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_SampleExclusionJustFromRegexExpression.vcf")
         );
 
@@ -184,13 +168,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test including samples that are not in the VCF
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSampleInclusionWithNonexistingSamples()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1:1-1000000 -sn A -sn Z -sn Q -sf " + samplesFile, testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1:1-1000000 -sn A -sn Z -sn Q -sf " + samplesFile, testFile),
                 1,
                 UserException.BadInput.class
         );
@@ -198,48 +182,32 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testSampleInclusionWithNonexistingSamples--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=false)
-    public void testDiscordanceNoSampleSpecified() throws IOException {
-        final String testFile = getToolTestDataDir() + "NA12878.hg19.example1.vcf";
-
-        final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + hg19Reference
-                        + " --variant " + b37hapmapGenotypes
-                        + " -o %s "
-                        + " --lenient -L 20:1012700-1020000 "
-                        + " -disc " + testFile,
-                Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_DiscordanceNoSampleSpecified.vcf")
-        );
-
-        spec.executeTest("testDiscordanceNoSampleSpecified--" + testFile, this);
-    }
-
-    @Test(groups={"requiresRemoteAccess"}, enabled=false)
+    @Test
     public void testDiscordance() throws IOException {
-        final String testFile = getToolTestDataDir() + "NA12878.hg19.example1.vcf";
+        final String testFile = getToolTestDataDir() + "vcfexample2.vcf";
+        final String discordanceFile = getToolTestDataDir() + "vcfexample2DiscordanceConcordance.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + hg19Reference
-                        + " --variant " + b37hapmapGenotypes
+                " --variant " + testFile
                         + " -o %s "
-                        + " --lenient -sn NA12878 -L 20:1012700-1020000 "
-                        + " -disc " + testFile,
+                        + " -sn NA11992 " // not present in discordance track
+                        + " -disc " + discordanceFile,
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_Discordance.vcf")
         );
 
         spec.executeTest("testDiscordance--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=false)
+    @Test(groups={"requiresBroadAccess"}, enabled=true)
     public void testConcordance()  throws IOException {
-        final String testFile = getToolTestDataDir() + "NA12878.hg19.example1.vcf";
+        final String testFile = getToolTestDataDir() + "vcfexample2.vcf";
+        final String concordanceFile = getToolTestDataDir() + "vcfexample2DiscordanceConcordance.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + hg19Reference
-                        + " --variant " + testFile
+                " --variant " + testFile
+                        + " -sn NA11894 "
                         + " -o %s "
-                        + " -sn NA12878 -L 20:1012700-1020000 "
-                        + " -conc " + b37hapmapGenotypes
+                        + " -conc " + concordanceFile
                         + " --lenient ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_Concordance.vcf")
         );
@@ -250,7 +218,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test including variant types.
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testVariantTypeSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
 
@@ -265,7 +233,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding indels that are larger than the specified size
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMaxIndelLengthSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
 
@@ -280,7 +248,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding indels that are smaller than the specified size
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMinIndelLengthSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
 
@@ -292,7 +260,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMinIndelLengthSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testRemoveMLE() throws IOException {
         final String testFile = getToolTestDataDir() + "vcfexample.withMLE.vcf";
 
@@ -304,7 +272,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testRemoveMLE--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testKeepOriginalAC() throws IOException {
         final String testFile = getToolTestDataDir() + "vcfexample.loseAlleleInSelection.vcf";
 
@@ -316,7 +284,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testKeepOriginalAC--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testKeepOriginalACAndENV() throws IOException {
         final String testFile = getToolTestDataDir() + "vcfexample.loseAlleleInSelection.vcf";
 
@@ -328,22 +296,19 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testKeepOriginalACAndENV--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testKeepOriginalDP() throws IOException {
         final String testFile = getToolTestDataDir() + "CEUtrioTest.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                        "-R " + b37KGReference
-                            + " --variant " + testFile
-                            + " -o %s "
-                            + " --keepOriginalDP -sn NA12892 ",
+                baseTestString(" --keepOriginalDP -sn NA12892 ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_KeepOriginalDP.vcf")
         );
 
         spec.executeTest("testKeepOriginalDP--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMultipleRecordsAtOnePosition() throws IOException {
         final String testFile = getToolTestDataDir() + "selectVariants.onePosition.vcf";
 
@@ -355,49 +320,38 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMultipleRecordsAtOnePosition--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testNoGTs() throws IOException {
         final String testFile = getToolTestDataDir() + "vcf4.1.example.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec (
-                " -R " + b37KGReference
-                    + " --variant " + testFile
-                    + " -o %s ",
+                " --variant " + testFile + " -o %s ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_NoGTs.vcf")
         );
 
         spec.executeTest("testNoGTs--" + testFile, this);
     }
 
-    // @TODO: This test passed using the GATK test files before sequence dictionary validation was enabled in HB
-    // but now fails with: UserException$LexicographicallySortedSequenceDictionary: A USER ERROR has occurred:
-    // Lexicographically sorted human genome sequence detected in variants. From debugging it appears that the
-    // variants file the source of the error message, but it still fails the same way even after running the
-    // picard SortVcf tool on the .vcf using the b37KGReference reference dictionary.
-    /*
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSelectFromMultiAllelic() throws IOException {
         final String testFile = getToolTestDataDir() + "multi-allelic.bi-allelicInGIH.vcf";
         final String samplesFile = getToolTestDataDir() + "GIH.samples.list";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                    + " --variant " + testFile
+                    " --variant " + testFile
                     + " -o %s "
                     + " -sf " + samplesFile + " --excludeNonVariants -trimAlternates",
-                Arrays.asList(getToolTestDataDir() + "expected/" + "testSelectVariants_MultiAllelicExcludeNonVar.vcf")
+                Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MultiAllelicExcludeNonVar.vcf")
         );
         spec.executeTest("test select from multi allelic with excludeNonVariants --" + testFile, this);
     }
-    */
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMultiAllelicAnnotationOrdering() throws IOException {
         final String testFile = getToolTestDataDir() + "multi-allelic-ordering.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                    + " --variant " + testFile
+                    " --variant " + testFile
                     + " -o %s "
                     + " -sn SAMPLE-CC -sn SAMPLE-CT -sn SAMPLE-CA --excludeNonVariants",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MultiAllelicAnnotationOrdering.vcf")
@@ -405,12 +359,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("test multi allelic annotation ordering --" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testFileWithoutInfoLineInHeader() throws IOException {
         testFileWithoutInfoLineInHeader("testSelectVariants_FileWithoutInfoLineInHeader", IllegalStateException.class);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testFileWithoutInfoLineInHeaderWithOverride() throws IOException {
         testFileWithoutInfoLineInHeader("testSelectVariants_FileWithoutInfoLineInHeaderWithOverride", null);
     }
@@ -418,9 +372,8 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     private void testFileWithoutInfoLineInHeader(final String name, final Class<? extends Exception> expectedException) throws IOException {
         final String testFile = getToolTestDataDir() + "missingHeaderLine.vcf";
         final String outFile = getToolTestDataDir() + "expected/" + name + ".vcf";
-        //final String cmd = "-R " + b36KGReference + " -sn NA12892 --variant:dbsnp "
 
-        final String cmd = baseTestString(" -sn NA12892 " + (expectedException == null ? " --lenient" : ""), testFile);
+        final String cmd = baseTestString(" -R " + human_b36_both_chr1 + " -sn NA12892 " + (expectedException == null ? " --lenient" : ""), testFile);
 
         IntegrationTestSpec spec =
                 expectedException != null
@@ -430,7 +383,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest(name, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testInvalidJexl() throws IOException {
 
         // NOTE: JexlEngine singleton construction in VariantContextUtils sets silent to false.
@@ -439,8 +392,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         htsjdk.variant.variantcontext.VariantContextUtils.engine.get().setSilent(false);
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                    + " -V " + getToolTestDataDir() + "ac0.vcf"
+                    " -V " + getToolTestDataDir() + "ac0.vcf"
                     + " -o %s "
                     + " -select 'vc.getGenotype(\"FAKE_SAMPLE\").isHomRef()' ",
                 1,
@@ -448,13 +400,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("InvalidJexl", this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testAlleleTrimming() throws IOException {
         final String testFile = getToolTestDataDir() + "forHardLeftAlignVariantsTest.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " -V " + testFile
+                        " -V " + testFile
                         + " -o %s "
                         + " -sn NA12878 -env -trimAlternates ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_AlleleTrimming.vcf"));
@@ -498,11 +449,10 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         };
     }
 
-    @Test(dataProvider="unusedAlleleTrimmingProvider", groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test(dataProvider="unusedAlleleTrimmingProvider")
     public void testUnusedAlleleTrimming(final String vcf, final String extraArgs, final String expectedOutput) throws IOException {
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                    + " -V " + vcf
+                    " -V " + vcf
                     + " -o %s "
                     + (extraArgs == null ? "" : extraArgs),
                 Collections.singletonList(expectedOutput)
@@ -516,7 +466,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      *  Test with an empty VCF file
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testEmptyVcfException() throws IOException {
         final String testFile = getToolTestDataDir() + "reallyEmpty.vcf";
 
@@ -532,7 +482,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test with a VCF file that is not a file
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testNotFileVcfException() throws IOException {
         final String testFile = getToolTestDataDir();
 
@@ -548,7 +498,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test with a VCF file that does not exist
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMissingVcfException() throws IOException {
         final String testFile = "test.vcf";
 
@@ -564,13 +514,14 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test inverting the variant selection criteria by the -invertSelect argument
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testInvertSelection()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -L 1 -env -ef -select 'DP < 20000' -invertSelect ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -sn A -se '[CDH]' -sf " + samplesFile +
+                                    " -L 1 -env -ef -select 'DP < 20000' -invertSelect ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_InvertSelection.vcf")
         );
 
@@ -580,13 +531,14 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test inverting the variant selection criteria by inverting the JEXL expression logic following -select
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testInvertJexlSelection()  throws IOException {
-        final String testFile = validationDataLocation + "test.filtered.maf_annotated.vcf";
-        final String samplesFile = validationDataLocation + "SelectVariants.samples.txt";
+        final String testFile = test_filtered_maf_vcf;
+        final String samplesFile = getToolTestDataDir() + "samples.txt";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -sn A -se '[CDH]' -sf " + samplesFile + " -env -ef -L 1 -select 'DP >= 20000' ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -sn A -se '[CDH]' -sf " + samplesFile +
+                                        " -env -ef -L 1 -select 'DP >= 20000' ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_InvertJexlSelection.vcf")
         );
 
@@ -596,13 +548,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test selecting variants with IDs
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testKeepSelectionID() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
         final String idFile = getToolTestDataDir() + "complexExample1.vcf.id";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -IDs " + idFile + " -L 1 ", testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -IDs " + idFile + " -L 1 ", testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_KeepSelectionID.vcf")
         );
 
@@ -612,13 +564,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding variants with IDs
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testExcludeSelectionID() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
         final String idFile = getToolTestDataDir() + "complexExample1.vcf.id";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                baseTestString(" -L 1 " + " -xlIDs " + idFile, testFile),
+                baseTestString(" -R " + human_b36_both_chr1 + " -L 1 " + " -xlIDs " + idFile, testFile),
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_ExcludeSelectionID.vcf")
         );
 
@@ -628,7 +580,7 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
     /**
      * Test excluding variant types
      */
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testExcludeSelectionType() throws IOException {
         final String testFile = getToolTestDataDir() + "complexExample1.vcf";
 
@@ -640,14 +592,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testExcludeSelectionType--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMendelianViolationSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "CEUtrioTest.vcf";
         final String pedFile = getToolTestDataDir() + "CEUtrio.ped";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s "
                         + " -ped " + pedFile
                         + " -mv -mvq 0 ",
@@ -657,14 +608,13 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMendelianViolationSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testInvertMendelianViolationSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "CEUtrioTest.vcf";
         final String pedFile = getToolTestDataDir() + "CEUtrio.ped";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s "
                         + " -mv -mvq 0 -invMv "
                         + " -ped " + pedFile,
@@ -674,13 +624,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testInvertMendelianViolationSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMaxFilteredGenotypesSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "filteredSamples.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s"
                         + " --maxFilteredGenotypes 1 ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MaxFilteredGenotypesSelection.vcf")
@@ -689,13 +638,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMaxFilteredGenotypesSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMinFilteredGenotypesSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "filteredSamples.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s "
                         + " --minFilteredGenotypes 2 ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MinFilteredGenotypesSelection.vcf")
@@ -704,13 +652,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMinFilteredGenotypesSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMaxFractionFilteredGenotypesSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "filteredSamples.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s"
                         + " --maxFractionFilteredGenotypes 0.4 ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MaxFractionFilteredGenotypesSelection.vcf")
@@ -719,13 +666,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMaxFractionFilteredGenotypesSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testMinFractionFilteredGenotypesSelection() throws IOException {
         final String testFile = getToolTestDataDir() + "filteredSamples.vcf";
 
         final  IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s"
                         + " --minFractionFilteredGenotypes 0.6 ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_MinFractionFilteredGenotypesSelection.vcf")
@@ -734,13 +680,12 @@ public class SelectVariantsIntegrationTest extends CommandLineProgramTest {
         spec.executeTest("testMinFractionFilteredGenotypesSelection--" + testFile, this);
     }
 
-    @Test(groups={"requiresRemoteAccess"}, enabled=remoteTestsEnabled)
+    @Test
     public void testSetFilteredGtoNocall() throws IOException {
         final String testFile = getToolTestDataDir() + "filteredSamples.vcf";
 
         final IntegrationTestSpec spec = new IntegrationTestSpec(
-                " -R " + b37KGReference
-                        + " --variant " + testFile
+                " --variant " + testFile
                         + " -o %s"
                         + " --setFilteredGtToNocall ",
                 Collections.singletonList(getToolTestDataDir() + "expected/" + "testSelectVariants_SetFilteredGtoNocall.vcf")

@@ -65,13 +65,6 @@ public class SampleDBBuilder {
 
     private EnumSet<PedReader.MissingPedField> getMissingFields(final Object engineArg) {
         return EnumSet.noneOf(PedReader.MissingPedField.class);
-        // @TODO - GATK allows command line args that specify fields missing
-        //if ( engine == null )
-        //    return EnumSet.noneOf(PedReader.MissingPedField.class);
-        //else {
-        //    final List<String> posTags = engine.getTags(engineArg).getPositionalTags();
-        //    return PedReader.parseMissingFieldTags(engineArg, posTags);
-        //}
     }
 
     // --------------------------------------------------------------------------------

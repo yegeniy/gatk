@@ -109,8 +109,6 @@
 ##contig=<ID=GL000194.1,length=191469,assembly=b37>
 ##contig=<ID=GL000225.1,length=211173,assembly=b37>
 ##contig=<ID=GL000192.1,length=547496,assembly=b37>
-##contig=<ID=NC_007605,length=171823,assembly=b37>
-##contig=<ID=hs37d5,length=35477943,assembly=b37>
 ##reference=file:///humgen/gsa-hpprojects/GATK/bundle/current/b37/human_g1k_v37_decoy.fasta
 ##source=SelectVariants
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878	NA12891	NA12892

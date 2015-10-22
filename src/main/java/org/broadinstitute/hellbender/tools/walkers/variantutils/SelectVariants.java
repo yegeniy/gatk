@@ -2,7 +2,6 @@ package org.broadinstitute.hellbender.tools.walkers.variantutils;
 
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.SAMSequenceRecord;
-import htsjdk.tribble.Feature;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypeBuilder;
@@ -10,9 +9,7 @@ import htsjdk.variant.variantcontext.GenotypesContext;
 import htsjdk.variant.variantcontext.VariantContext;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
 import htsjdk.variant.variantcontext.VariantContextUtils;
-import htsjdk.variant.variantcontext.writer.Options;
 import htsjdk.variant.variantcontext.writer.VariantContextWriter;
-import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFHeader;
 import htsjdk.variant.vcf.VCFConstants;
 import htsjdk.variant.vcf.VCFContigHeaderLine;
@@ -28,7 +25,6 @@ import org.broadinstitute.hellbender.engine.FeatureInput;
 import org.broadinstitute.hellbender.engine.FeatureContext;
 import org.broadinstitute.hellbender.engine.ReadsContext;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
-import org.broadinstitute.hellbender.engine.filters.ExcludeIDsVariantFilter;
 import org.broadinstitute.hellbender.engine.filters.IncludeIDsVariantFilter;
 import org.broadinstitute.hellbender.engine.filters.VariantFilter;
 import org.broadinstitute.hellbender.engine.filters.VariantFilterLibrary;
@@ -92,7 +88,7 @@ import java.util.stream.Collectors;
  */
 @CommandLineProgramProperties(
         summary = "Select variant calls based on sample names, patterns, etc.",
-        oneLineSummary = "Select variants VCF",
+        oneLineSummary = "Select variants from a VCF",
         programGroup = VariantProgramGroup.class
 )
 public class SelectVariants extends VariantWalker {
@@ -103,13 +99,13 @@ public class SelectVariants extends VariantWalker {
     private static final double MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE = 0.0;
 
     /**
-  n   * A site is considered discordant if there exists some sample in the variant track that has a non-reference
-     * genotype  and either the site isn't present in this track, the sample isn't present in this track, or the
+     * A site is considered discordant if there exists some sample in the variant track that has a non-reference
+     * genotype and either the site isn't present in this track, the sample isn't present in this track, or the
      * sample is called reference in this track.
      */
     @Argument(fullName="discordance", shortName = "disc",
                     doc="Output variants not called in this comparison track", optional=true)
-    public FeatureInput<VariantContext> discordanceTrack;
+    private FeatureInput<VariantContext> discordanceTrack;
 
     /**
      * A site is considered concordant if (1) we are not looking for specific samples and there is a variant called
@@ -118,16 +114,16 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="concordance", shortName = "conc",
                     doc="Output variants also called in this comparison track", optional=true)
-    public FeatureInput<VariantContext> concordanceTrack;
+    private FeatureInput<VariantContext> concordanceTrack;
 
     @Argument(doc="File to which variants should be written")
-    public File outFile = null;
+    private File outFile = null;
 
     /**
      * This argument can be specified multiple times in order to provide multiple sample names.
      */
     @Argument(fullName="sample_name", shortName="sn", doc="Include genotypes from this sample", optional=true)
-    public Set<String> sampleNames = new HashSet<>(0);
+    private Set<String> sampleNames = new HashSet<>(0);
 
     /**
      * Using a regular expression allows you to match multiple sample names that have that pattern in common. This
@@ -135,21 +131,21 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="sample_expressions", shortName="se",
                     doc="Regular expression to select multiple samples", optional=true)
-    public Set<String> sampleExpressions = new HashSet<>(0);
+    private Set<String> sampleExpressions = new HashSet<>(0);
 
     /**
      * Sample names should be in a plain text file listing one sample name per line. This argument can be specified
      * multiple times in order to provide multiple sample list files.
      */
     @Argument(fullName="sample_file", shortName="sf", doc="File containing a list of samples to include", optional=true)
-    public Set<File> sampleFiles = new HashSet<>(0);
+    private Set<File> sampleFiles = new HashSet<>(0);
 
     /**
      * Note that sample exclusion takes precedence over inclusion, so that if a sample is in both lists it will be
      * excluded. This argument can be specified multiple times in order to provide multiple sample names.
      */
     @Argument(fullName="exclude_sample_name", shortName="xl_sn", doc="Exclude genotypes from this sample", optional=true)
-    public Set<String> XLsampleNames = new HashSet<>(0);
+    private Set<String> XLsampleNames = new HashSet<>(0);
 
     /**
      * Sample names should be in a plain text file listing one sample name per line. Note that sample exclusion takes
@@ -157,7 +153,7 @@ public class SelectVariants extends VariantWalker {
      * specified multiple times in order to provide multiple sample list files.
      */
     @Argument(fullName="exclude_sample_file", shortName="xl_sf", doc="List of samples to exclude", optional=true)
-    public Set<File> XLsampleFiles = new HashSet<>(0);
+    private Set<File> XLsampleFiles = new HashSet<>(0);
 
     /**
      * Using a regular expression allows you to match multiple sample names that have that pattern in common. Note that
@@ -166,34 +162,34 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="exclude_sample_expressions", shortName="xl_se",
                     doc="List of sample expressions to exclude", optional=true)
-    public Set<String> XLsampleExpressions = new HashSet<>(0);
+    private Set<String> XLsampleExpressions = new HashSet<>(0);
 
     /**
      * See example commands above for detailed usage examples. Note that these expressions are evaluated *after* the
      * specified samples are extracted and the INFO field annotations are updated.
      */
     @Argument(shortName="select", doc="One or more criteria to use when selecting the data", optional=true)
-    public ArrayList<String> selectExpressions = new ArrayList<>();
+    private ArrayList<String> selectExpressions = new ArrayList<>();
 
     /**
      * Invert the selection criteria for -select.
      */
     @Argument(shortName="invertSelect", doc="Invert the selection criteria for -select", optional=true)
-    public boolean invertSelect = false;
+    private boolean invertSelect = false;
 
     /*
      * If this flag is enabled, sites that are found to be non-variant after the subsetting procedure (i.e. where none
      * of the selected samples display evidence of variation) will be excluded from the output.
      */
     @Argument(fullName="excludeNonVariants", shortName="env", doc="Don't include non-variant sites", optional=true)
-    public boolean XLnonVariants = false;
+    private boolean XLnonVariants = false;
 
     /**
      * If this flag is enabled, sites that have been marked as filtered (i.e. have anything other than `.` or `PASS`
      * in the FILTER field) will be excluded from the output.
      */
     @Argument(fullName="excludeFiltered", shortName="ef", doc="Don't include filtered sites", optional=true)
-    public boolean XLfiltered = false;
+    private boolean XLfiltered = false;
 
     /**
      * The default behavior of this tool is to remove bases common to all remaining alleles after subsetting
@@ -201,7 +197,7 @@ public class SelectVariants extends VariantWalker {
      * alleles will be preserved as recorded in the input VCF.
      */
     @Argument(fullName="preserveAlleles", shortName="noTrim", doc="Preserve original alleles, do not trim", optional=true)
-    public boolean preserveAlleles = false;
+    private boolean preserveAlleles = false;
 
     /**
      * When this flag is enabled, all alternate alleles that are not present in the (output) samples will be removed.
@@ -211,7 +207,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="removeUnusedAlternates", shortName="trimAlternates",
                     doc="Remove alternate alleles not present in any genotypes", optional=true)
-    public boolean removeUnusedAlternates = false;
+    private boolean removeUnusedAlternates = false;
 
     /**
      * When this argument is used, we can choose to include only multiallelic or biallelic sites, depending on how many
@@ -225,7 +221,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="restrictAllelesTo", shortName="restrictAllelesTo",
                     doc="Select only variants of a particular allelicity", optional=true)
-    public NumberAlleleRestriction alleleRestriction = NumberAlleleRestriction.ALL;
+    private NumberAlleleRestriction alleleRestriction = NumberAlleleRestriction.ALL;
 
     /**
      * When subsetting a callset, this tool recalculates the AC, AF, and AN values corresponding to the contents of the
@@ -234,7 +230,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="keepOriginalAC", shortName="keepOriginalAC",
                     doc="Store the original AC, AF, and AN values after subsetting", optional=true)
-    public boolean keepOriginalChrCounts = false;
+    private boolean keepOriginalChrCounts = false;
 
     /**
      * When subsetting a callset, this tool recalculates the site-level (INFO field) DP value corresponding to the
@@ -243,7 +239,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="keepOriginalDP", shortName="keepOriginalDP",
                     doc="Store the original DP value after subsetting", optional=true)
-    public boolean keepOriginalDepth = false;
+    private boolean keepOriginalDepth = false;
 
     /**
      * If this flag is enabled, this tool will select only variants that correspond to a mendelian violation as
@@ -251,7 +247,7 @@ public class SelectVariants extends VariantWalker {
      * `-ped` argument.
      */
     @Argument(fullName="mendelianViolation", shortName="mv", doc="Output mendelian violation sites only", optional=true)
-    public Boolean mendelianViolations = false;
+    private Boolean mendelianViolations = false;
 
     /**
      * If this flag is enabled, this tool will select only variants that do not correspond to a mendelian violation as
@@ -260,7 +256,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="invertMendelianViolation", shortName="invMv",
                     doc="Output non-mendelian violation sites only", optional=true)
-    public Boolean invertMendelianViolations = false;
+    private Boolean invertMendelianViolations = false;
 
     /**
      * This argument specifies the genotype quality (GQ) threshold that all members of a trio must have in order
@@ -269,10 +265,10 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="mendelianViolationQualThreshold", shortName="mvq",
                     doc="Minimum GQ score for each trio member to accept a site as a violation", optional=true)
-    public double mendelianViolationQualThreshold = 0;
+    private double mendelianViolationQualThreshold = 0;
 
     @Argument(fullName="pedigree", shortName="ped", doc="Pedigree file", optional=true)
-    public File pedigreeFile = null;
+    private File pedigreeFile = null;
 
     /**
      * The value of this argument should be a number between 0 and 1 specifying the fraction of total variants to be
@@ -281,7 +277,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="select_random_fraction", shortName="fraction",
                     doc="Select a fraction of variants at random from the input", optional=true)
-    public double fractionRandom = 0;
+    private double fractionRandom = 0;
 
     /**
      * The value of this argument should be a number between 0 and 1 specifying the fraction of total variants to be
@@ -290,7 +286,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="remove_fraction_genotypes", shortName="fractionGenotypes",
                         doc="Select a fraction of genotypes at random from the input and sets them to no-call", optional=true)
-    public double fractionGenotypes = 0;
+    private double fractionGenotypes = 0;
 
     /**
      * This argument selects particular kinds of variants out of a list. If left empty, there is no type selection
@@ -299,7 +295,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="selectTypeToInclude", shortName="selectType",
                     doc="Select only a certain type of variants from the input file", optional=true)
-    public List<VariantContext.Type> typesToInclude = new ArrayList<>();
+    private List<VariantContext.Type> typesToInclude = new ArrayList<>();
 
     /**
      * This argument excludes particular kinds of variants out of a list. If left empty, there is no type selection
@@ -308,7 +304,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="selectTypeToExclude", shortName="xlSelectType",
                     doc="Do not select certain type of variants from the input file", optional=true)
-    public List<VariantContext.Type> typesToExclude = new ArrayList<>();
+    private List<VariantContext.Type> typesToExclude = new ArrayList<>();
 
     /**
      * If a file containing a list of IDs is provided to this argument, the tool will only select variants whose ID
@@ -316,7 +312,7 @@ public class SelectVariants extends VariantWalker {
      * is simply plain text with one ID per line.
      */
     @Argument(fullName="keepIDs", shortName="IDs", doc="List of variant IDs to select", optional=true)
-    public File rsIDFile = null;
+    private File rsIDFile = null;
 
     /**
      * If a file containing a list of IDs is provided to this argument, the tool will not select variants whose ID
@@ -324,34 +320,34 @@ public class SelectVariants extends VariantWalker {
      * is simply plain text with one ID per line.
      */
     @Argument(fullName="excludeIDs", shortName="xlIDs", doc="List of variant IDs to select", optional=true)
-    public File XLrsIDFile = null;
+    private File XLrsIDFile = null;
 
     @HiddenOption
     @Argument(fullName="fullyDecode", doc="If true, the incoming VariantContext will be fully decoded", optional=true)
-    public boolean fullyDecode = false;
+    private boolean fullyDecode = false;
 
     @HiddenOption
     @Argument(fullName="justRead",
                     doc="If true, we won't actually write the output file.  For efficiency testing only", optional=true)
-    public boolean justRead = false;
+    private boolean justRead = false;
 
     /**
      * If this argument is provided, indels that are larger than the specified size will be excluded.
      */
     @Argument(fullName="maxIndelSize", optional=true, doc="Maximum size of indels to include")
-    public int maxIndelSize = Integer.MAX_VALUE;
+    private int maxIndelSize = Integer.MAX_VALUE;
 
     /**
      * If this argument is provided, indels that are smaller than the specified size will be excluded.
      */
     @Argument(fullName="minIndelSize", optional=true, doc="Minimum size of indels to include")
-    public int minIndelSize = 0;
+    private int minIndelSize = 0;
 
     /**
      * If this argument is provided, select sites where at most a maximum number of samples are filtered at the genotype level.
      */
     @Argument(fullName="maxFilteredGenotypes", optional=true, doc="Maximum number of samples filtered at the genotype level")
-    public int maxFilteredGenotypes = MAX_FILTERED_GENOTYPES_DEFAULT_VALUE;
+    private int maxFilteredGenotypes = MAX_FILTERED_GENOTYPES_DEFAULT_VALUE;
 
     /**
      * If this argument is provided, select sites where at least a minimum number of samples are filtered at
@@ -359,7 +355,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="minFilteredGenotypes", optional=true,
                     doc="Minimum number of samples filtered at the genotype level")
-    public int minFilteredGenotypes = MIN_FILTERED_GENOTYPES_DEFAULT_VALUE;
+    private int minFilteredGenotypes = MIN_FILTERED_GENOTYPES_DEFAULT_VALUE;
 
     /**
      * If this argument is provided, select sites where a fraction or less of the samples are filtered at
@@ -367,7 +363,7 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="maxFractionFilteredGenotypes",
                     optional=true, doc="Maximum fraction of samples filtered at the genotype level")
-    public double maxFractionFilteredGenotypes = MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
+    private double maxFractionFilteredGenotypes = MAX_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
 
     /**
      * If this argument is provided, select sites where a fraction or more of the samples are filtered at
@@ -375,31 +371,28 @@ public class SelectVariants extends VariantWalker {
      */
     @Argument(fullName="minFractionFilteredGenotypes", optional=true,
                     doc="Maximum fraction of samples filtered at the genotype level")
-    public double minFractionFilteredGenotypes = MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
+    private double minFractionFilteredGenotypes = MIN_FRACTION_FILTERED_GENOTYPES_DEFAULT_VALUE;
 
     /**
      * If this argument is provided, set filtered genotypes to no-call (./.).
      */
     @Argument(fullName="setFilteredGtToNocall", optional=true, doc="Set filtered genotypes to no-call")
-    public boolean setFilteredGenotypesToNocall = false;
+    private boolean setFilteredGenotypesToNocall = false;
 
     @Argument(fullName=StandardArgumentDefinitions.LENIENT_LONG_NAME,
                             shortName = StandardArgumentDefinitions.LENIENT_SHORT_NAME,
                             doc = "Lenient processing of VCF files", common = true, optional = true)
-    public boolean lenientVCFProcesssing;
-
-    //@ArgumentCollection
-    //private IntervalArgumentCollection intervalList = new OptionalIntervalArgumentCollection();
+    private boolean lenientVCFProcessing;
 
     @HiddenOption
     @Argument(fullName="ALLOW_NONOVERLAPPING_COMMAND_LINE_SAMPLES", optional=true,
                     doc="Allow samples other than those in the VCF to be specified on the command line. These samples will be ignored.")
-    public boolean allowNonOverlappingCommandLineSamples = false;
+    private boolean allowNonOverlappingCommandLineSamples = false;
 
     @HiddenOption
     @Argument(fullName="SUPPRESS_REFERENCE_NAME", shortName="sr", optional=true,
             doc="Suppress reference file name in output for test result differencing")
-    public boolean suppressReferenceName = false;
+    private boolean suppressReferenceName = false;
 
     private VariantContextWriter vcfWriter = null;
 
@@ -413,7 +406,7 @@ public class SelectVariants extends VariantWalker {
     private boolean noSamplesSpecified = false;
 
     private Set<VariantContext.Type> selectedTypes = new HashSet<>();
-    private ArrayList<String> selectNames = new ArrayList<>();
+    private final ArrayList<String> selectNames = new ArrayList<>();
     private List<VariantContextUtils.JexlVCMatchExp> jexls = null;
 
     private boolean discordanceOnly = false;
@@ -426,7 +419,7 @@ public class SelectVariants extends VariantWalker {
     private boolean selectRandomFraction = false;
 
     // Random number generator for the genotypes to remove
-    private Random randomGenotypes = new Random();
+    private final Random randomGenotypes = new Random();
 
     private Set<String> IDsToKeep = null;
     private Set<String> IDsToRemove = null;
@@ -439,14 +432,11 @@ public class SelectVariants extends VariantWalker {
      */
     @Override
     public void onTraversalStart() {
-        final FeatureInput<? extends Feature> featureInput = getDrivingVariantsFeatureInput();
-
-        final Map<String, VCFHeader> vcfRods = new HashMap<>();
-        final VCFHeader vcfHeader= getHeaderForVariants();
-        vcfRods.put(featureInput.getName(), vcfHeader);
+        final Map<String, VCFHeader> vcfHeaders = new HashMap<>();
+        vcfHeaders.put(getDrivingVariantsFeatureInput().getName(), getHeaderForVariants());
 
         // Initialize VCF header lines
-        final Set<VCFHeaderLine> headerLines = createVCFHeaderLineList(vcfRods);
+        final Set<VCFHeaderLine> headerLines = createVCFHeaderLineList(vcfHeaders);
 
         for (int i = 0; i < selectExpressions.size(); i++) {
             // It's not necessary that the user supply select names for the JEXL expressions, since those
@@ -457,7 +447,7 @@ public class SelectVariants extends VariantWalker {
         jexls = VariantContextUtils.initializeMatchExps(selectNames, selectExpressions);
 
         // Prepare the sample names and types to be used by the corresponding filters
-        samples = createSampleNameInclusionList(vcfRods);
+        samples = createSampleNameInclusionList(vcfHeaders);
         selectedTypes = createSampleTypeInclusionList();
 
         // Look at the parameters to decide which analysis to perform
@@ -485,44 +475,46 @@ public class SelectVariants extends VariantWalker {
         IDsToKeep = getIDsFromFile(rsIDFile);
         IDsToRemove = getIDsFromFile(XLrsIDFile);
 
-        VariantContextWriterBuilder vcWriterBuilder =
-                new VariantContextWriterBuilder()
-                    .setOutputFile(outFile)
-                    .setOutputFileType(VariantContextWriterBuilder.OutputType.VCF)
-                    .unsetOption(Options.INDEX_ON_THE_FLY);
-        if (lenientVCFProcesssing) {
-            vcWriterBuilder = vcWriterBuilder.setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
-        }
-        vcfWriter = vcWriterBuilder.build();
-
-        final File refFile = referenceArguments.getReferenceFile();
-        final SAMSequenceDictionary samDictionary = this.getBestAvailableSequenceDictionary();
-        Set<VCFHeaderLine> actualLines;
-        if (refFile != null && samDictionary!= null) {
-            actualLines = withUpdatedContigsAsLines(headerLines, refFile, samDictionary, suppressReferenceName);
+        Set<VCFHeaderLine> actualLines = null;
+        SAMSequenceDictionary sequenceDictionary = null;
+        if (hasReference()) {
+            File refFile = referenceArguments.getReferenceFile();
+            sequenceDictionary= this.getReferenceDictionary();
+            actualLines = withUpdatedContigsAsLines(headerLines, refFile, sequenceDictionary, suppressReferenceName);
         }
         else {
-            actualLines = headerLines;
+            sequenceDictionary = getHeaderForVariants().getSequenceDictionary();
+            if (null != sequenceDictionary) {
+                actualLines = withUpdatedContigsAsLines(headerLines, null, sequenceDictionary, suppressReferenceName);
+            }
+            else {
+                actualLines = headerLines;
+            }
         }
+
+        vcfWriter = GATKVariantContextUtils.createVCFWriter(outFile, sequenceDictionary, lenientVCFProcessing);
         vcfWriter.writeHeader(new VCFHeader(actualLines, samples));
     }
 
     @Override
     public void apply(VariantContext vc, ReadsContext readsContext, ReferenceContext ref, FeatureContext featureContext) {
 
+        if (fullyDecode) {
+            vc = vc.fullyDecode(getHeaderForVariants(), lenientVCFProcessing);
+        }
+
         if (mendelianViolations && invertLogic((mv.countFamilyViolations(sampleDB, samples, vc) == 0), invertMendelianViolations)) {
             return;
         }
 
-        if (discordanceOnly && !isDiscordant(vc, featureContext.getValues(discordanceTrack, 0, 0))) {
+        if (discordanceOnly && !isDiscordant(vc, featureContext.getValues(discordanceTrack))) {
             return;
         }
 
-        if (concordanceOnly && !isConcordant(vc, featureContext.getValues(concordanceTrack, 0, 0))) {
+        if (concordanceOnly && !isConcordant(vc, featureContext.getValues(concordanceTrack))) {
             return;
         }
 
-        // TODO: Some of these tests could factored out into re-useable filter predicates if they're useful in other tools
         if (alleleRestriction.equals(NumberAlleleRestriction.BIALLELIC) && !vc.isBiallelic()) {
             return;
         }
@@ -600,7 +592,7 @@ public class SelectVariants extends VariantWalker {
         }
 
         if (IDsToRemove != null && IDsToRemove.size() > 0) {
-            compositeFilter = compositeFilter.and(new ExcludeIDsVariantFilter(IDsToRemove));
+            compositeFilter = compositeFilter.and(new IncludeIDsVariantFilter(IDsToRemove).negate());
         }
 
         return compositeFilter;
@@ -733,8 +725,8 @@ public class SelectVariants extends VariantWalker {
 
         lines.addAll(makeContigHeaderLines(refDict, referenceFile).stream().collect(Collectors.toList()));
 
-        final String referenceValue;
         if (referenceFile != null) {
+            final String referenceValue;
             if (referenceNameOnly) {
                 final int extensionStart = referenceFile.getName().lastIndexOf(".");
                 referenceValue = extensionStart == -1 ? referenceFile.getName() : referenceFile.getName().substring(0, extensionStart);
@@ -754,9 +746,9 @@ public class SelectVariants extends VariantWalker {
      * @return list of vcf contig header lines
      */
     private static List<VCFContigHeaderLine> makeContigHeaderLines(final SAMSequenceDictionary refDict,
-                                                                  final File referenceFile) {
+                                                                   final File referenceFile) {
         final List<VCFContigHeaderLine> lines = new ArrayList<>();
-        final String assembly = referenceFile != null ? getReferenceAssembly(referenceFile.getName()) : null;
+        final String assembly = referenceFile != null ? referenceFile.getName() : null;
         lines.addAll(refDict.getSequences().stream().map(contig -> makeContigHeaderLine(contig, assembly)).collect(Collectors.toList()));
         return lines;
     }
@@ -769,23 +761,6 @@ public class SelectVariants extends VariantWalker {
             map.put("assembly", assembly);
         }
         return new VCFContigHeaderLine(map, contig.getSequenceIndex());
-    }
-
-    /*
-     * TODO: the GATK code does this to include in the headers - seems pretty sketchy...
-     */
-    private static String getReferenceAssembly(final String refPath) {
-        // This doesn't need to be perfect as it's not a required VCF header line, but we might as well give it a shot
-        String assembly = null;
-        if (refPath.contains("b37") || refPath.contains("v37"))
-            assembly = "b37";
-        else if (refPath.contains("b36"))
-            assembly = "b36";
-        else if (refPath.contains("hg18"))
-            assembly = "hg18";
-        else if (refPath.contains("hg19"))
-            assembly = "hg19";
-        return assembly;
     }
 
     /**
@@ -868,8 +843,6 @@ public class SelectVariants extends VariantWalker {
         return null;
     }
 
-    // TODO: possiblyInvertFilterExpression and invertLogic were taken from Adam's VariantFiltration branch - should
-    // these be lifted into VariantWalker ?
     /**
      * Prepend inverse phrase to description if --invertFilterExpression
      *
@@ -898,6 +871,8 @@ public class SelectVariants extends VariantWalker {
      * @param maxIndelSize  the maximum size of allowed indels
      * @param minIndelSize  the minimum size of allowed indels
      * @return true if the VC contains an indel larger than maxIndelSize or less than the minIndelSize, false otherwise
+     *
+     * Protected for unit test access
      */
     protected static boolean containsIndelLargerOrSmallerThan(final VariantContext vc, final int maxIndelSize, final int minIndelSize) {
         final List<Integer> lengths = vc.getIndelLengths();
@@ -1127,8 +1102,7 @@ public class SelectVariants extends VariantWalker {
      * @param originalVC  the original VC
      * @param selectedSampleNames the post-selection list of sample names
      */
-    private void addAnnotations (final VariantContextBuilder builder, final VariantContext originalVC, final Set<String> selectedSampleNames) {
-        // @TODO: this TODO was in GATK - is this still the case ?
+    private void addAnnotations(final VariantContextBuilder builder, final VariantContext originalVC, final Set<String> selectedSampleNames) {
         if (fullyDecode) {
             return; // TODO -- annotations are broken with fully decoded data
         }

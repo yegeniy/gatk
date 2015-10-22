@@ -67,4 +67,42 @@ public class SampleUnitTest extends BaseTest {
         Assert.assertEquals(mergedSample1.getSex(), gender);
         Assert.assertEquals(mergedSample1.getAffection(), affection);
     }
+
+    @DataProvider(name="sortSamplesNullFields")
+    private Object[][] sortSamplesNullFields() {
+        return new Object[][] {
+                { new Sample("A", null, null, null, Sex.MALE, Affection.UNKNOWN), 0 },
+                { new Sample("A", "fam1", null, null, Sex.MALE, Affection.UNKNOWN), -1 },
+                { new Sample("A", null, "1M", null, Sex.MALE, Affection.UNKNOWN), -1 },
+                { new Sample("A", null, null, "1F", Sex.MALE, Affection.UNKNOWN), -1 },
+                { new Sample("A", null, null, null, Sex.FEMALE, Affection.UNKNOWN), -1 },
+                { new Sample("A", null, null, null, Sex.MALE, Affection.AFFECTED), -1 }
+        };
+    }
+
+    @Test(dataProvider="sortSamplesNullFields")
+    private void testCompareNullFields(Sample target, int expected) {
+        Sample source = new Sample("A", null, null, null, Sex.MALE, Affection.UNKNOWN);
+        Assert.assertEquals(source.compareTo(target), expected);
+    }
+
+    @DataProvider(name="sortSamplesFields")
+    private Object[][] sortSamplesFields() {
+        return new Object[][] {
+                { new Sample("A", "fam1", "1M", "1F", Sex.MALE, Affection.AFFECTED), 0 },
+                { new Sample("Z", "fam1", "1M", "1F", Sex.MALE, Affection.AFFECTED), -25 },
+                { new Sample("A", "fam2", "1M", "1F", Sex.MALE, Affection.AFFECTED), -1 },
+                { new Sample("A", "fam1", "2M", "1F", Sex.MALE, Affection.AFFECTED), -1 },
+                { new Sample("A", "fam1", "1M", "2F", Sex.MALE, Affection.AFFECTED), -1 },
+                { new Sample("A", "fam1", "1M", "1F", Sex.FEMALE, Affection.AFFECTED), -1 },
+                { new Sample("A", "fam1", "1M", "1F", Sex.MALE, Affection.UNAFFECTED), -1 },
+        };
+    }
+
+    @Test(dataProvider="sortSamplesFields")
+    private void testCompareFields(Sample target, int expected) {
+        Sample source = new Sample("A", "fam1", "1M", "1F", Sex.MALE, Affection.AFFECTED);
+        Assert.assertEquals(source.compareTo(target), expected);
+    }
+
 }

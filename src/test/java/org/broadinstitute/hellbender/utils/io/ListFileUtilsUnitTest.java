@@ -1,10 +1,13 @@
 package org.broadinstitute.hellbender.utils.io;
 
+import org.broadinstitute.hellbender.exceptions.UserException;
 import org.testng.Assert;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 
 import org.broadinstitute.hellbender.utils.test.BaseTest;
@@ -18,7 +21,7 @@ public class ListFileUtilsUnitTest extends BaseTest {
 
     @Test
     public void testUnpackSet() throws Exception {
-        Set<String> expected = new HashSet<String>(Arrays.asList(publicTestDir + "exampleBAM.bam"));
+        Set<String> expected = new HashSet<>(Arrays.asList(publicTestDir + "exampleBAM.bam"));
         Set<String> actual = ListFileUtils.unpackSet(Arrays.asList(publicTestDir + "exampleBAM.bam"));
         Assert.assertEquals(actual, expected);
 
@@ -79,4 +82,20 @@ public class ListFileUtilsUnitTest extends BaseTest {
         Set<String> actual = ListFileUtils.excludeMatching(values, ListFileUtils.IDENTITY_STRING_CONVERTER, filters, exactMatch);
         Assert.assertEquals(actual, expected);
     }
+
+    private static File createTempListFile(final String tempFilePrefix, final String... lines) {
+        try {
+            final File tempListFile = createTempFile(tempFilePrefix, ".list");
+
+            try (final PrintWriter out = new PrintWriter(tempListFile)) {
+                for (final String line : lines) {
+                    out.println(line);
+                }
+            }
+            return tempListFile;
+        } catch (IOException ex) {
+            throw new UserException("Cannot create temp file: " + ex.getMessage(), ex);
+        }
+    }
+
 }

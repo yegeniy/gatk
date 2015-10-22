@@ -1,8 +1,12 @@
 package org.broadinstitute.hellbender.utils.variant;
 
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.samtools.util.Locatable;
 import htsjdk.tribble.TribbleException;
 import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
+import htsjdk.variant.variantcontext.writer.VariantContextWriterBuilder;
 import htsjdk.variant.vcf.VCFConstants;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.tuple.MutablePair;
@@ -10,10 +14,10 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.broadinstitute.hellbender.utils.GenomeLoc;
-import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -30,6 +34,42 @@ public final class GATKVariantContextUtils {
     public static final int DEFAULT_PLOIDY = HomoSapiensConstants.DEFAULT_PLOIDY;
 
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
+
+    /**
+     * Creates a VariantContextWriter who's outputFile type is <code>VariantContextWriterBuilder.OutputType.VCF</code>.
+     * The default options set by VariantContextWriter are cleared before applying ALLOW_MISSING_FIELDS_IN_HEADER (if
+     * <code>lenientProcessing</code> is set), followed by the set of options specified by any <code>options</code> args.
+     *
+     * @param outFile output File for this writer
+     * @param referenceDictionary required if on the fly indexing is set, otherwise can be null
+     * @param lenientProcessing true if ALLOW_MISSING_FIELDS_IN_HEADER option should be set
+     * @param options variable length list of additional options to be set for this writer
+     * @returns VariantContextWriter must be closed by the caller
+     */
+    public static VariantContextWriter createVCFWriter(
+            File outFile,
+            SAMSequenceDictionary referenceDictionary,
+            boolean lenientProcessing,
+            Options... options)
+    {
+        VariantContextWriterBuilder vcWriterBuilder = new VariantContextWriterBuilder()
+                                                            .setOutputFile(outFile)
+                                                            .setOutputFileType(VariantContextWriterBuilder.OutputType.VCF);
+        // ideally, we'd just call clearOptions, but to work around for a bug in htsjdk where calling clearOptions
+        // has a global side effect, manually unset the default options instead
+        vcWriterBuilder.unsetOption(Options.INDEX_ON_THE_FLY);
+        if (null != referenceDictionary) {
+            vcWriterBuilder = vcWriterBuilder.setReferenceDictionary(referenceDictionary);
+        }
+        if (lenientProcessing) {
+            vcWriterBuilder = vcWriterBuilder.setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+        }
+        for (Options opt : options) {
+            vcWriterBuilder = vcWriterBuilder.setOption(opt);
+        }
+
+        return vcWriterBuilder.build();
+    }
 
     /**
      * Checks whether a variant-context overlaps with a region.
@@ -116,15 +156,6 @@ public final class GATKVariantContextUtils {
         }
 
         return result;
-    }
-
-    /**
-     * create a genome location, given a variant context
-     * @param vc the variant context
-     * @return the genomeLoc
-     */
-    public static Locatable getLocation(final VariantContext vc) {
-        return new SimpleInterval(vc.getContig(), vc.getStart(), vc.getEnd());
     }
 
     public enum GenotypeMergeType {

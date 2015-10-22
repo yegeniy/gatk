@@ -35,6 +35,7 @@ public final class MendelianViolation {
     /**
      * @param minGenotypeQualityP - the minimum phred scaled genotype quality score necessary to asses mendelian violation
      * @param abortOnSampleNotFound - Whether to stop execution if a family is passed but no relevant genotypes are found. If false, then the family is ignored.
+     * @param completeTriosOnly true if only complete trios are considered, false to include parent/child pairs are
      */
     public MendelianViolation(final double minGenotypeQualityP, final boolean abortOnSampleNotFound, boolean completeTriosOnly) {
         minGenotypeQuality = minGenotypeQualityP;
@@ -92,7 +93,8 @@ public final class MendelianViolation {
     }
 
     /**
-     * @param sampleDB containing the families to be checked for Mendelian violations
+     * @param sampleDB contains the database of samples containing samples for families to be checked for Mendelian violations
+     * @param sampleIDs ids of the subset of the samples contained in <code>sampleDB</code> who's family's violations will be checked
      * @param vc the variant context to extract the genotypes and alleles for mom, dad and child.
      * @return whether or not there is a mendelian violation at the site.
      */

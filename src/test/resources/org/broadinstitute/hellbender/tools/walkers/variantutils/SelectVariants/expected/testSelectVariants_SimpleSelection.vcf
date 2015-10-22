@@ -17,10 +17,10 @@
 ##INFO=<ID=RMSMAPQ,Number=1,Type=Float,Description="RMS Mapping Quality">
 ##INFO=<ID=SB,Number=1,Type=Float,Description="Strand bias">
 ##INFO=<ID=SpanningDeletions,Number=1,Type=Integer,Description="No spanning deletions">
-##contig=<ID=1,length=16000,assembly=hg19>
-##contig=<ID=2,length=16000,assembly=hg19>
-##contig=<ID=3,length=16000,assembly=hg19>
-##contig=<ID=4,length=16000,assembly=hg19>
+##contig=<ID=1,length=16000,assembly=hg19mini.fasta>
+##contig=<ID=2,length=16000,assembly=hg19mini.fasta>
+##contig=<ID=3,length=16000,assembly=hg19mini.fasta>
+##contig=<ID=4,length=16000,assembly=hg19mini.fasta>
 ##reference=hg19mini
 ##source=SelectVariants
 ##source=UnifiedGenotyper

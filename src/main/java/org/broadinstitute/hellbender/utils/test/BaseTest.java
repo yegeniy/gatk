@@ -59,6 +59,12 @@ public abstract class BaseTest {
     // Variants from a DBSNP 138 VCF overlapping the reads in NA12878_20_21_WGS_bam
     public static final String dbsnp_138_b37_20_21_vcf = largeFileTestDir + "dbsnp_138.b37.20.21.vcf";
 
+    // Chromosome 1 of human_b36_both
+    public static final String human_b36_both_chr1 = largeFileTestDir + "human_b36_both_chr1.fasta";
+
+    // Used by SelectVariants test
+    public static final String test_filtered_maf_vcf = largeFileTestDir + "filtered.maf_annotated.vcf";
+
     /**
      * END OF LARGE FILES FOR TESTING
      */
@@ -264,27 +270,6 @@ public abstract class BaseTest {
      */
     public static File createTempFile(final String name, final String extension) {
         return IOUtils.createTempFile(name, extension);
-    }
-
-    /**
-     * Creates a temp list file that will be deleted on exit after tests are complete.
-     * @param tempFilePrefix Prefix of the file.
-     * @param lines lines to write to the file.
-     * @return A list file in the temporary directory starting with tempFilePrefix, which will be deleted after the program exits.
-     */
-    public static File createTempListFile(final String tempFilePrefix, final String... lines) {
-        try {
-            final File tempListFile = createTempFile(tempFilePrefix, ".list");
-
-            try (final PrintWriter out = new PrintWriter(tempListFile)) {
-                for (final String line : lines) {
-                    out.println(line);
-                }
-            }
-            return tempListFile;
-        } catch (IOException ex) {
-            throw new UserException("Cannot create temp file: " + ex.getMessage(), ex);
-        }
     }
 
     /**

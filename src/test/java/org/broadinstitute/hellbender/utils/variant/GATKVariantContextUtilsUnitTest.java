@@ -1,6 +1,9 @@
 package org.broadinstitute.hellbender.utils.variant;
 
+import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.variant.variantcontext.*;
+import htsjdk.variant.variantcontext.writer.Options;
+import htsjdk.variant.variantcontext.writer.VariantContextWriter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.broadinstitute.hellbender.utils.BaseUtils;
 import org.broadinstitute.hellbender.utils.GenomeLoc;
@@ -12,6 +15,7 @@ import org.testng.annotations.BeforeSuite;
 import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -1519,5 +1523,33 @@ public final class GATKVariantContextUtilsUnitTest extends BaseTest {
         BaseUtils.fillWithRandomBases(bases, 1, bases.length);
         return bases;
     }
-}
 
+    @Test
+    public void testCreateVariantContextWriterNoOptions() {
+        final File outFile = createTempFile("testVCFWriter", ".vcf");
+        final VariantContextWriter vcw = GATKVariantContextUtils.createVCFWriter(outFile, null, true);
+        vcw.close();
+        final File outFileIndex = new File(outFile.getAbsolutePath() + ".idx");
+        Assert.assertTrue(outFile.exists());
+        Assert.assertFalse(outFileIndex.exists());
+    }
+
+    @Test
+    public void testCreateVariantContextWriterWithOptions() {
+        final File outFile = createTempFile("testVCFWriter", ".vcf");
+        final VariantContextWriter vcw = GATKVariantContextUtils.createVCFWriter(
+                outFile, new SAMSequenceDictionary(), true, Options.INDEX_ON_THE_FLY, Options.ALLOW_MISSING_FIELDS_IN_HEADER);
+        vcw.close();
+        Assert.assertTrue(outFile.exists());
+        final File outFileIndex = new File(outFile.getAbsolutePath() + ".idx");
+        Assert.assertTrue(outFile.exists());
+        Assert.assertTrue(outFileIndex.exists());
+    }
+
+    @Test(expectedExceptions=IllegalArgumentException.class)
+    public void testNegativeCreateVariantContextWriter() {
+        // should throw due to lack of reference
+        final File outFile = createTempFile("testVCFWriter", ".vcf");
+        final VariantContextWriter vcw = GATKVariantContextUtils.createVCFWriter(outFile, null, true, Options.INDEX_ON_THE_FLY);
+    }
+}

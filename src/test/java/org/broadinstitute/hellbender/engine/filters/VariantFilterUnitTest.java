@@ -80,24 +80,6 @@ public class VariantFilterUnitTest extends BaseTest {
         Assert.assertTrue(iivf.test(vc) == expected);
     }
 
-    @DataProvider(name="excludeIDsVCs")
-    public Object[][] excludeIDsTestVCs() {
-
-        return new Object[][]{
-                { snpVC, new String[]{"id1"}, false },
-                { snpVC, new String[]{"id1", "id2"}, false },
-                { snpVC, new String[]{"noid"}, true },
-        };
-    }
-
-    @Test(dataProvider="excludeIDsVCs")
-    public void testExcludeIDsVariantFilter(VariantContext vc, String[] exIDs, boolean expected) {
-        Set<String> idSet = new HashSet<>();
-        idSet.addAll(Arrays.asList(exIDs));
-        ExcludeIDsVariantFilter eivf = new ExcludeIDsVariantFilter(idSet);
-        Assert.assertTrue(eivf.test(vc) == expected);
-    }
-
     @DataProvider(name="typeVCs")
     public Object[][] typeTestVCs() {
 

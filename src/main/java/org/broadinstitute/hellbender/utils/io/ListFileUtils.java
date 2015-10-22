@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.utils.io;
 
 import java.io.*;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 import org.broadinstitute.hellbender.exceptions.UserException;
@@ -35,8 +36,8 @@ public class ListFileUtils {
         // We'll add every entry in the file to our set, and treat the entries as
         // if they had been specified on the command line.
         for (String value : values) {
-            File file = new File(value);
-            if (value.toLowerCase().endsWith(".list") && file.exists()) {
+            if (isListFile(value)) {
+                File file = new File(value);
                 try (final Reader rdr = new FileReader(file)) {
                     unpackedValues.addAll(new XReadLines(rdr, true, LIST_FILE_COMMENT_START).readLines());
                 } catch (IOException e) {
@@ -94,26 +95,11 @@ public class ListFileUtils {
         Utils.nonNull(converter);
         Utils.nonNull(filters);
 
-        final Set<String> unpackedFilters = unpackSet(filters);
         final Set<T> filteredValues = new LinkedHashSet<T>();
-        Collection<Pattern> patterns = null;
-        if (!exactMatch) {
-            patterns = compilePatterns(unpackedFilters);
-        }
-        for (T value : values) {
-            String converted = converter.convert(value);
-            if (unpackedFilters.contains(converted)) {
-                filteredValues.add(value);
-            } else if (!exactMatch) {
-                for (Pattern pattern : patterns) {
-                    if (pattern.matcher(converted).find()) {
-                        filteredValues.add(value);
-                    }
-                }
-            }
-        }
+        doMatching(filteredValues::add, values, converter, filters, exactMatch);
         return filteredValues;
     }
+
 
     /**
      * Returns a new set of values excluding any values matching filters.
@@ -133,9 +119,26 @@ public class ListFileUtils {
         Utils.nonNull(converter);
         Utils.nonNull(filters);
 
-        final Set<String> unpackedFilters = unpackSet(filters);
         final Set<T> filteredValues = new LinkedHashSet<T>();
-        filteredValues.addAll(values);
+        filteredValues.addAll(values); // prime the set for subsequent removal of matching values
+        doMatching(filteredValues::remove, values, converter, filters, exactMatch);
+        return filteredValues;
+    }
+
+    private static <T> void doMatching
+        (
+            Consumer<T> actionMethod,  // Set::add or Set::remove (add or remove) on match
+            Collection<T> values,
+            StringConverter<T> converter,
+            Collection<String> filters,
+            boolean exactMatch
+        )
+    {
+        Utils.nonNull(values);
+        Utils.nonNull(converter);
+        Utils.nonNull(filters);
+
+        final Set<String> unpackedFilters = unpackSet(filters);
         Collection<Pattern> patterns = null;
         if (!exactMatch) {
             patterns = compilePatterns(unpackedFilters);
@@ -143,16 +146,23 @@ public class ListFileUtils {
         for (T value : values) {
             String converted = converter.convert(value);
             if (unpackedFilters.contains(converted)) {
-                filteredValues.remove(value);
+                actionMethod.accept(value);
             } else if (!exactMatch) {
                 for (Pattern pattern : patterns) {
                     if (pattern.matcher(converted).find()) {
-                        filteredValues.remove(value);
+                        actionMethod.accept(value);
                     }
                 }
             }
         }
-        return filteredValues;
+    }
+
+    /**
+     * @param listFileName
+     * @return true if listFileName looks like a conforming list file name, an the file exists otherwise false
+     */
+     public static boolean isListFile(String listFileName) {
+       return listFileName.toLowerCase().endsWith(".list") && new File(listFileName).exists();
     }
 
     private static Collection<Pattern> compilePatterns(Collection<String> filters) {

@@ -3,6 +3,8 @@ package org.broadinstitute.hellbender.utils.samples;
 import org.broadinstitute.hellbender.exceptions.UserException;
 import org.broadinstitute.hellbender.utils.Utils;
 
+import java.util.Comparator;
+
 /**
  *  Represents an individual under study.
  */
@@ -22,6 +24,7 @@ public final class Sample implements Comparable<Sample> {
                   final Affection affection) {
         Utils.nonNull(ID, "ID is null");
         Utils.nonNull(gender, "sex is null");
+        Utils.nonNull(affection, "affection is null");
         this.ID = ID;
         this.familyID = familyID;
         this.paternalID = paternalID;
@@ -68,8 +71,29 @@ public final class Sample implements Comparable<Sample> {
     }
 
     @Override
-    public int compareTo(final Sample sample) {
-        return ID.compareTo(sample.getID());
+    public int compareTo(final Sample other) {
+
+        int cmp = ID.compareTo(other.getID());
+
+        if (0 == cmp) {
+            // use a null-tolerant string comparator for the optional strings
+            Comparator<String> compStr = Comparator.nullsFirst(Comparator.comparing(String::toString));
+
+            cmp = compStr.compare(familyID, other.getFamilyID());
+            if (0 == cmp) {
+                cmp = compStr.compare(paternalID, other.getPaternalID());
+            }
+            if (0 == cmp) {
+                cmp = compStr.compare(maternalID, other.getMaternalID());
+            }
+            if (0 == cmp) {
+                cmp = gender.compareTo(other.getSex());
+            }
+            if (0 == cmp) {
+                cmp = affection.compareTo(other.getAffection());
+            }
+        }
+        return cmp;
     }
 
     @Override
@@ -82,14 +106,8 @@ public final class Sample implements Comparable<Sample> {
         if (o == null) {
             return false;
         }
-        if (o instanceof Sample) {
-            Sample otherSample = (Sample) o;
-            return ID.equals(otherSample.ID) &&
-                    equalOrNull(familyID, otherSample.familyID) &&
-                    equalOrNull(paternalID, otherSample.paternalID) &&
-                    equalOrNull(maternalID, otherSample.maternalID) &&
-                    equalOrNull(gender, otherSample.gender) &&
-                    equalOrNull(affection, otherSample.affection);
+        else if (o instanceof Sample) {
+            return 0 == this.compareTo((Sample) o);
         }
         return false;
     }
@@ -128,15 +146,6 @@ public final class Sample implements Comparable<Sample> {
                     throw new UserException("Inconsistent values detected for " + name + " for field " + field + " value1 " + o1 + " value2 " + o2);
                 }
             }
-        }
-    }
-
-    private static boolean equalOrNull(final Object o1, final Object o2) {
-        if (o1 == null) {
-            return o2 == null;
-        }
-        else {
-            return o2 == null ? false : o1.equals(o2);
         }
     }
 

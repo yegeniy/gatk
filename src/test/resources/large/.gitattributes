@@ -6,3 +6,8 @@ dbsnp_138.b37.20.21.vcf.idx filter=lfs diff=lfs merge=lfs -text
 human_g1k_v37.20.21.dict filter=lfs diff=lfs merge=lfs -text
 human_g1k_v37.20.21.fasta filter=lfs diff=lfs merge=lfs -text
 human_g1k_v37.20.21.fasta.fai filter=lfs diff=lfs merge=lfs -text
+human_b36_both_chr1.fasta filter=lfs diff=lfs merge=lfs -text
+human_b36_both_chr1.fasta.fai filter=lfs diff=lfs merge=lfs -text
+human_b36_both_chr1.dict filter=lfs diff=lfs merge=lfs -text
+filtered.maf_annotated.vcf filter=lfs diff=lfs merge=lfs -text
+filtered.maf_annotated.vcf.idx filter=lfs diff=lfs merge=lfs -text

@@ -110,7 +110,6 @@
 ##contig=<ID=GL000194.1,length=191469>
 ##contig=<ID=GL000225.1,length=211173>
 ##contig=<ID=GL000192.1,length=547496>
-##contig=<ID=NC_007605,length=171823>
 ##reference=file:///home/unix/thibault/scratch/Homo_sapiens_assembly19.fasta
 ##source=SelectVariants
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE-CA	SAMPLE-CC	SAMPLE-CT
