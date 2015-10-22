@@ -45,8 +45,16 @@ public final class ExactACset {
     public ExactACcounts getACcounts() {
         return acCounts;
     }
-    
+
     public double[] getLogLikelihoods() {
         return logLikelihoods;
     }
+
+    public int size() { return logLikelihoods.length; }
+
+    public double getLogLikelihoods(final int index) {
+        return logLikelihoods[index];
+    }
+
+    public void setLogLikelihoods(final int index, final double value) {logLikelihoods[index] = value; }
 }
