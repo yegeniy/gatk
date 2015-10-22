@@ -23,20 +23,6 @@ public final class GenotypeLikelihoodCalculators {
      */
     private int maximumPloidy = 2; // its initial value is the initial capacity of the shared tables.
 
-    //TODO: this is redundant with MathUtils' logCache
-    /**
-     * Cached log10 values for the first integer up to the maximum ploidy requested thus far.
-     */
-    private double[] ploidyLog10;
-
-    // Initialize {@link #ploidyLog10}.
-    {
-        ploidyLog10 = new double[maximumPloidy + 1];
-        for (int i = 0; i <= maximumPloidy; i++) {
-            ploidyLog10[i] = Math.log10(i);
-        }
-    }
-
     /**
      * Maximum possible number of genotypes that this calculator can handle.
      */
@@ -273,9 +259,7 @@ public final class GenotypeLikelihoodCalculators {
         }
 
         // At this point the tables must have at least the requested capacity, likely to be much more.
-        //TODO: I might remove the last argument of GenotypesLikelihoodCalculator's constructor since it seems just to
-        //set a log cache, which is already done by MathUtils
-        return new GenotypeLikelihoodCalculator(ploidy,alleleCount,alleleFirstGenotypeOffsetByPloidy,genotypeTableByPloidy,ploidyLog10);
+        return new GenotypeLikelihoodCalculator(ploidy,alleleCount,alleleFirstGenotypeOffsetByPloidy,genotypeTableByPloidy);
     }
 
     /**
@@ -301,9 +285,6 @@ public final class GenotypeLikelihoodCalculators {
         alleleFirstGenotypeOffsetByPloidy = buildAlleleFirstGenotypeOffsetTable(newMaximumPloidy,newMaximumAllele);
         genotypeTableByPloidy = buildGenotypeAlleleCountsTable(newMaximumPloidy,newMaximumAllele,alleleFirstGenotypeOffsetByPloidy);
 
-        if (needsToExpandPloidyCapacity) {
-            ploidyLog10 = ploidyLog10Extension(newMaximumPloidy);
-        }
 
         // Since tables are volatile fields, it is guaranteed that tables changes will be seen before
         // than any change on ploidyCapacity and alleleCapacity ensuring that the non-thread safe
@@ -319,21 +300,6 @@ public final class GenotypeLikelihoodCalculators {
         }
     }
 
-    //TODO: this seems redundant with MathUtils logCache
-    /**
-     * Extends the existing {@link #ploidyLog10} with more log10 as needed by maximum-ploidy expansion.
-     * @param newMaximumPloidy the new maximum ploidy.
-     *
-     * @return never code {@code null}.
-     */
-    private double[] ploidyLog10Extension(final int newMaximumPloidy) {
-        final int start = ploidyLog10.length;
-        final double[] result = Arrays.copyOf(ploidyLog10, newMaximumPloidy + 1);
-        for (int i = start; i < result.length; i++) {
-            result[i] = Math.log10(i);
-        }
-        return result;
-    }
 
     /**
      * Perform value checks on maximumPloidy and allele passed to diverse methods in this class.

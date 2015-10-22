@@ -108,13 +108,6 @@ public final class GenotypeLikelihoodCalculator {
      */
     private int readCapacity = -1;
 
-    /**
-     * Caches the log of the first few integers up to the ploidy supported by the calculator.
-     * <p>This is in fact a shallow copy if {@link GenotypeLikelihoodCalculators#ploidyLog10}</p> and is not meant to be modified by
-     * this class. </p>
-     */
-    private final double[] logCache;
-    //TODO: This seems redundant with MathUtils.LogCache.  Replace?
 
     /**
      * Buffer field use as a temporal container for sorted allele counts when calculating the likelihood of a
@@ -152,11 +145,9 @@ public final class GenotypeLikelihoodCalculator {
     /**
      * Creates a new calculator providing its ploidy and number of genotyping alleles.
      */
-    //TODO: is logPloidy (which is used to set logCache) redundant w/ MathUtils
     protected GenotypeLikelihoodCalculator(final int ploidy, final int alleleCount,
                                            final int[][] alleleFirstGenotypeOffsetByPloidy,
-                                           final GenotypeAlleleCounts[][] genotypeTableByPloidy,
-                                           final double[] logPloidy) {
+                                           final GenotypeAlleleCounts[][] genotypeTableByPloidy) {
         if (ploidy < 1){
             throw new IllegalArgumentException("ploidy must be at least 1 but was " + ploidy);
         }
@@ -172,7 +163,6 @@ public final class GenotypeLikelihoodCalculator {
         }
         alleleHeap = new PriorityQueue<>(ploidy, Comparator.<Integer>naturalOrder().reversed());
         readLikelihoodsByGenotypeIndex = new double[genotypeCount][];
-        logCache = logPloidy;
         // The number of possible components is limited by distinct allele count and ploidy.
         maximumDistinctAllelesInGenotype = Math.min(ploidy, alleleCount);
         genotypeAllelesAndCounts = new int[maximumDistinctAllelesInGenotype << 1];
@@ -314,7 +304,7 @@ public final class GenotypeLikelihoodCalculator {
      */
     private double[] genotypeLikelihoods(final double[][] readLikelihoodsByGenotypeIndex, final int readCount) {
         final double[] result = new double[genotypeCount];
-        final double denominator = readCount * logCache[ploidy];
+        final double denominator = readCount * MathUtils.LogCache.get(ploidy);
         // instead of dividing each read likelihood by ploidy (in log space, subtracting log(ploidy))
         //we multiply them all and then divide by ploidy^readCount (in log space, subtract readCount*log(ploidy))
         for (int g = 0; g < genotypeCount; g++) {
@@ -464,10 +454,9 @@ public final class GenotypeLikelihoodCalculator {
 
             // p = 2 because the frequency == 1 we already have it.
             for (int frequency = 2, destinationOffset = frequency1Offset + readCount; frequency <= ploidy; frequency++) {
-                final double logFrequency = logCache[frequency];
                 for (int r = 0, sourceOffset = frequency1Offset; r < readCount; r++) {
                     readAlleleLikelihoodByAlleleCount[destinationOffset++] =
-                            readAlleleLikelihoodByAlleleCount[sourceOffset++] + logFrequency;
+                            readAlleleLikelihoodByAlleleCount[sourceOffset++] + MathUtils.LogCache.get(frequency);
                 }
             }
         }
