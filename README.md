@@ -19,7 +19,7 @@ Requirements
 ------------
 * Java 8
 
-* Gradle 2.7
+* Gradle 2.8
 
 * R 3.1.3
 
