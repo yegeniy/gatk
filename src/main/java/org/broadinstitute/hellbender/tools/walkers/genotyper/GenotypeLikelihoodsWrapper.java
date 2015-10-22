@@ -34,14 +34,12 @@ package org.broadinstitute.hellbender.tools.walkers.genotyper;
  * 1) the constructor, which takes a log-likelihoods argument
  */
 
-import htsjdk.tribble.TribbleException;
-import htsjdk.variant.utils.GeneralUtils;
-import htsjdk.variant.variantcontext.*;
-import htsjdk.variant.vcf.VCFConstants;
+import htsjdk.variant.variantcontext.Allele;
+import htsjdk.variant.variantcontext.Genotype;
+import htsjdk.variant.variantcontext.GenotypeLikelihoods;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.hellbender.utils.MathUtils;
 
-import java.util.Arrays;
-import java.util.EnumMap;
 import java.util.List;
 
 
@@ -64,20 +62,10 @@ public class GenotypeLikelihoodsWrapper {
         return new GenotypeLikelihoodsWrapper(logLikelihoods);
     }
 
-    /**
-     * Returns the genotypes likelihoods in negative log vector format.  pr{AA} = x, this
-     * vector returns math.log(x) for each of the genotypes.  Can return null if the
-     * genotype likelihoods are "missing".
-     *
-     * As mentioned above, this returns log-likelihoods because we have tricked the copy of GenotypeLikelihoods
-     * into using natural log likelihoods.
-     *
-     * @return
-     */
+
     public double[] getAsVector() {
         return genotypeLikelihoods.getAsVector();
     }
-
 
     public String toString() {
         return getAsString();
@@ -96,9 +84,6 @@ public class GenotypeLikelihoodsWrapper {
 
         return this.genotypeLikelihoods.equals(that.genotypeLikelihoods);
     }
-    
-    //Return the neg log Genotype Quality (GQ) for the given genotype
-    //Returns Double.NEGATIVE_INFINITY in case of missing genotype
 
     public double getLogGQ(Genotype genotype, List<Allele> vcAlleles ) {
         return genotypeLikelihoods.getLog10GQ(genotype, vcAlleles) * MathUtils.LOG10_TO_LOG_CONVERSION;

@@ -119,11 +119,15 @@ public final class MathUtils {
     }
 
     public static double approximateLogSumLog(final double[] vals, final int endIndex) {
+        return approximateLogSumLog(vals, 0, endIndex);
+    }
+
+    public static double approximateLogSumLog(final double[] vals, final int startIndex, final int endIndex) {
 
         final int maxElementIndex = MathUtils.maxElementIndex(vals, endIndex);
         double approxSum = vals[maxElementIndex];
 
-        for (int i = 0; i < endIndex; i++) {
+        for (int i = startIndex; i < endIndex; i++) {
             if (i == maxElementIndex || vals[i] == Double.NEGATIVE_INFINITY) {
                 continue;
             }
