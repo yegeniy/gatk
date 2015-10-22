@@ -55,7 +55,7 @@ public final class GenotypeLikelihoodCalculatorUnitTest {
         final int sampleCount = readCount.length;
         for (int s = 0; s < sampleCount ; s++) {
             final LikelihoodMatrix<Allele> sampleLikelihoods = readLikelihoods.sampleMatrix(s);
-            final GenotypeLikelihoods genotypeLikelihoods = calculator.genotypeLikelihoods(sampleLikelihoods);
+            final GenotypeLikelihoodsWrapper genotypeLikelihoods = calculator.genotypeLikelihoods(sampleLikelihoods);
             final double[] genotypeLikelihoodsDoubles = genotypeLikelihoods.getAsVector();
             Assert.assertEquals(genotypeLikelihoodsDoubles.length, genotypeCount);
             for (int i = 0; i < testGenotypeCount; i++) {
@@ -68,9 +68,9 @@ public final class GenotypeLikelihoodCalculatorUnitTest {
                         final int a = genotypeAlleleCounts.alleleIndexAt(ar);
                         final int aCount = genotypeAlleleCounts.alleleCountAt(ar);
                         final double readLk = sampleLikelihoods.get(a, r);
-                        compoments[ar] = readLk + Math.log10(aCount);
+                        compoments[ar] = readLk + Math.log(aCount);
                     }
-                    readGenotypeLikelihoods[r] = MathUtils.approximateLog10SumLog10(compoments) - Math.log10(ploidy);
+                    readGenotypeLikelihoods[r] = MathUtils.approximateLogSumLog(compoments) - Math.log(ploidy);
                 }
                 final double genotypeLikelihood = MathUtils.sum(readGenotypeLikelihoods);
                 Assert.assertEquals(genotypeLikelihoodsDoubles[i], genotypeLikelihood, 0.0001);

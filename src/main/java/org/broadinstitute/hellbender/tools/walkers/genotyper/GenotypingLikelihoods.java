@@ -14,7 +14,7 @@ import java.util.List;
  */
 public final class GenotypingLikelihoods<A extends Allele> implements SampleList, AlleleList<A> {
 
-    private final GenotypeLikelihoods[] likelihoods;
+    private final GenotypeLikelihoodsWrapper[] likelihoods;
 
     private final PloidyModel ploidyModel;
 
@@ -50,8 +50,8 @@ public final class GenotypingLikelihoods<A extends Allele> implements SampleList
             throw new IllegalArgumentException("there must be exactly one likelihood set for each sample");
         }
 
-        this.likelihoods = likelihoods.toArray(new GenotypeLikelihoods[likelihoods.size()]);
-        for (final GenotypeLikelihoods likelihood : this.likelihoods) {
+        this.likelihoods = likelihoods.toArray(new GenotypeLikelihoodsWrapper[likelihoods.size()]);
+        for (final GenotypeLikelihoodsWrapper likelihood : this.likelihoods) {
             if (likelihood == null)
                 throw new IllegalArgumentException("no genotype likelihood is allowed to be null");
         }
@@ -99,7 +99,7 @@ public final class GenotypingLikelihoods<A extends Allele> implements SampleList
      *
      * @return never {@code null}.
      */
-    public GenotypeLikelihoods sampleLikelihoods(final int sampleIndex) {
+    public GenotypeLikelihoodsWrapper sampleLikelihoods(final int sampleIndex) {
         return likelihoods[sampleIndex];
     }
 
