@@ -128,12 +128,13 @@ public final class IndependentAllelesDiploidExactAFCalculatorUnitTest extends Ba
     public Object[][] makeThetaNTests() {
         List<Object[]> tests = new ArrayList<>();
 
-        final List<Double> log10LAlleles = Arrays.asList(0.0, -1.0, -2.0, -3.0, -4.0);
+        final List<Double> logLAlleles = Arrays.asList(MathUtils.log10ToLog(0.0), MathUtils.log10ToLog(-1.0),
+                MathUtils.log10ToLog(-2.0), MathUtils.log10ToLog(-3.0), MathUtils.log10ToLog(-4.0));
 
-        for ( final double log10pRef : Arrays.asList(-1, -2, -3) ) {
+        for ( final double logpRef : Arrays.asList(MathUtils.log10ToLog(-1), MathUtils.log10ToLog(-2), MathUtils.log10ToLog(-3) )) {
             for ( final int ploidy : Arrays.asList(1, 2, 3, 4) ) {
-                for ( List<Double> permutations : Utils.makePermutations(log10LAlleles, ploidy, true)) {
-                    tests.add(new Object[]{permutations, Math.pow(10, log10pRef)});
+                for ( List<Double> permutations : Utils.makePermutations(logLAlleles, ploidy, true)) {
+                    tests.add(new Object[]{permutations, Math.exp(logpRef)});
                 }
             }
         }
@@ -142,26 +143,26 @@ public final class IndependentAllelesDiploidExactAFCalculatorUnitTest extends Ba
     }
 
     @Test(dataProvider = "ThetaNTests")
-    public void testThetaNTests(final List<Double> log10LAlleles, final double pRef) {
+    public void testThetaNTests(final List<Double> logLAlleles, final double pRef) {
         // biallelic
         final double[] rawPriors = MathUtils.toLog(new double[]{pRef, 1 - pRef});
 
-        final double log10pNonRef = Math.log10(1 - pRef);
+        final double logpNonRef = Math.log(1 - pRef);
 
         final List<AFCalculationResult> originalPriors = new LinkedList<>();
         final List<Double> pNonRefN = new LinkedList<>();
-        for ( int i = 0; i < log10LAlleles.size(); i++ ) {
-            final double log10LAllele1 = log10LAlleles.get(i);
-            final double[] L1 = MathUtils.normalizeFromLog10(new double[]{log10LAllele1, 0.0}, true);
+        for ( int i = 0; i < logLAlleles.size(); i++ ) {
+            final double logLAllele1 = logLAlleles.get(i);
+            final double[] L1 = MathUtils.normalizeFromLog(new double[]{logLAllele1, 0.0}, true);
             final AFCalculationResult result1 = new AFCalculationResult(new int[]{1}, Arrays.asList(A, C), L1, rawPriors, Collections.singletonMap(C, -10000.0));
             originalPriors.add(result1);
-            pNonRefN.add(log10pNonRef*(i+1));
+            pNonRefN.add(logpNonRef*(i+1));
         }
 
         final List<AFCalculationResult> thetaNPriors = IndependentAllelesDiploidExactAFCalculator.applyMultiAllelicPriors(originalPriors);
 
         double prevPosterior = 0.0;
-        for ( int i = 0; i < log10LAlleles.size(); i++ ) {
+        for ( int i = 0; i < logLAlleles.size(); i++ ) {
             final AFCalculationResult thetaN = thetaNPriors.get(i);
             AFCalculationResult orig = null;
             for ( final AFCalculationResult x : originalPriors )
@@ -170,7 +171,7 @@ public final class IndependentAllelesDiploidExactAFCalculatorUnitTest extends Ba
 
             Assert.assertNotNull(orig, "couldn't find original AFCalc");
 
-            Assert.assertEquals(orig.getLogPriorOfAFGT0(), log10pNonRef, 1e-6);
+            Assert.assertEquals(orig.getLogPriorOfAFGT0(), logpNonRef, 1e-6);
             Assert.assertEquals(thetaN.getLogPriorOfAFGT0(), pNonRefN.get(i), 1e-6);
 
             Assert.assertTrue(orig.getLogPosteriorOfAFGT0() <= prevPosterior, "AFCalc results should be sorted but " + prevPosterior + " is > original posterior " + orig.getLogPosteriorOfAFGT0());

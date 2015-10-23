@@ -67,8 +67,8 @@ public final class ProbabilityVectorUnitTest{
 
         v1 = new ProbabilityVector(new double[]{-3.0,-3.0,});
         v2 = new ProbabilityVector(new double[]{-3.0,-3.0,});
-        // log10(10^-6+10^-6) = -5.69897
-        Assert.assertEquals(v1.logDotProduct(v2), -5.69897, 1e-3);
+        // log(exp(-6)+exp(-6)) = -5.306853
+        Assert.assertEquals(v1.logDotProduct(v2), -5.306853, 1e-3);
 
         // test non-overlapping range case
         v1 = new ProbabilityVector(new double[]{-3.0,-3.0, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY});
