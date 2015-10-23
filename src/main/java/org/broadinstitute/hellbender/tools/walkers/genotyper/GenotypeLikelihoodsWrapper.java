@@ -39,6 +39,7 @@ import htsjdk.variant.variantcontext.Genotype;
 import htsjdk.variant.variantcontext.GenotypeLikelihoods;
 import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.hellbender.utils.MathUtils;
+import org.broadinstitute.hellbender.utils.QualityUtils;
 
 import java.util.List;
 
@@ -60,6 +61,14 @@ public class GenotypeLikelihoodsWrapper {
 
     public final static GenotypeLikelihoodsWrapper fromLogLikelihoods(double[] logLikelihoods) {
         return new GenotypeLikelihoodsWrapper(logLikelihoods);
+    }
+
+    public final static GenotypeLikelihoodsWrapper fromPLs(final int[] pls) {
+        return new GenotypeLikelihoodsWrapper(PLsToGLs(pls));
+    }
+
+    public final static GenotypeLikelihoodsWrapper fromGenotype(final Genotype genotype) {
+        return genotype.hasLikelihoods() ? fromPLs(genotype.getPL()) : null;
     }
 
 
@@ -95,5 +104,14 @@ public class GenotypeLikelihoodsWrapper {
 
     public static double getLogGQFromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){
        return GenotypeLikelihoods.getGQLog10FromLikelihoods(iOfChoosenGenotype, likelihoods);
+    }
+
+    //Same as htsjdk GenotypeLikelihoods method, but converts PL to natural log GL, not log10
+    private final static double[] PLsToGLs(final int pls[]) {
+        double[] likelihoodsAsVector = new double[pls.length];
+        for ( int i = 0; i < pls.length; i++ ) {
+            likelihoodsAsVector[i] = pls[i] * QualityUtils.PHRED_TO_LOG_PROB_MULTIPLIER;
+        }
+        return likelihoodsAsVector;
     }
 }
