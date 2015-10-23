@@ -113,7 +113,7 @@ public final class GATKVariantContextUtils {
                         newLikelihoods[newIndex++] = originalLikelihoods[oldIndex];
 
                     // might need to re-normalize
-                    newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
+                    newLikelihoods = MathUtils.normalizeFromLog(newLikelihoods, false, true);
                 }
 
                 if ( newLikelihoods == null || likelihoodsAreUninformative(newLikelihoods) )
@@ -241,6 +241,8 @@ public final class GATKVariantContextUtils {
                     final int PLindex = MathUtils.maxElementIndex(newLikelihoods);
                     GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(PLindex);
                     gb.alleles(Arrays.asList(allelesToUse.get(alleles.alleleIndex1), allelesToUse.get(alleles.alleleIndex2)));
+
+                    //TODO: I don't see how this code has any effect!
                     gb.log10PError(GenotypeLikelihoods.getGQLog10FromLikelihoods(PLindex, newLikelihoods));
                 }
                 break;

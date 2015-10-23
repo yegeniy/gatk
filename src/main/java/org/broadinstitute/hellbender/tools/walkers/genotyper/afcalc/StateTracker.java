@@ -24,7 +24,7 @@ import java.util.Map;
  */
 final class StateTracker {
     private static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
-    static final double MAX_LOG_ERROR_TO_STOP_EARLY = 6 * MathUtils.LOG10_TO_LOG_CONVERSION; // we want the calculation to be accurate to 1 / 10^6
+    static final double MAX_LOG_ERROR_TO_STOP_EARLY = MathUtils.log10ToLog(6); // we want the calculation to be accurate to 1 / 10^6
 
     /**
      * These variables are intended to contain the MLE and MAP (and their corresponding allele counts)

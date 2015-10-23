@@ -217,7 +217,7 @@ public final class AFCalculationResult {
         if ( minPNonRefPhredScaledQual < 0 ) {
             throw new IllegalArgumentException("phredScaledQual " + minPNonRefPhredScaledQual + " < 0 ");
         }
-        final double logThreshold = MathUtils.LOG10_TO_LOG_CONVERSION * minPNonRefPhredScaledQual / -10;
+        final double logThreshold = MathUtils.log10ToLog(minPNonRefPhredScaledQual / -10);
         return isPolymorphic(allele, logThreshold);
     }
 

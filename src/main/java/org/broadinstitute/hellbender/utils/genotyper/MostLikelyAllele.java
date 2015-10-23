@@ -19,7 +19,7 @@ import org.broadinstitute.hellbender.utils.Utils;
  * corresponding key
  */
 public final class MostLikelyAllele {
-    public static final double INFORMATIVE_LOG_LIKELIHOOD_THRESHOLD = MathUtils.LOG10_TO_LOG_CONVERSION * 0.2;
+    public static final double INFORMATIVE_LOG_LIKELIHOOD_THRESHOLD = MathUtils.log10ToLog(0.2);
 
     private final Allele mostLikely;
     private final Allele secondMostLikely;

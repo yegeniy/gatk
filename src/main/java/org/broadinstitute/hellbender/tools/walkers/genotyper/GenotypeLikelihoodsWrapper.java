@@ -86,11 +86,11 @@ public class GenotypeLikelihoodsWrapper {
     }
 
     public double getLogGQ(Genotype genotype, List<Allele> vcAlleles ) {
-        return genotypeLikelihoods.getLog10GQ(genotype, vcAlleles) * MathUtils.LOG10_TO_LOG_CONVERSION;
+        return MathUtils.log10ToLog(genotypeLikelihoods.getLog10GQ(genotype, vcAlleles));
     }
 
     public double getLogGQ(Genotype genotype, VariantContext context) {
-        return genotypeLikelihoods.getLog10GQ(genotype, context) * MathUtils.LOG10_TO_LOG_CONVERSION;
+        return MathUtils.log10ToLog(genotypeLikelihoods.getLog10GQ(genotype, context));
     }
 
     public static double getLogGQFromLikelihoods(int iOfChoosenGenotype, double[] likelihoods){

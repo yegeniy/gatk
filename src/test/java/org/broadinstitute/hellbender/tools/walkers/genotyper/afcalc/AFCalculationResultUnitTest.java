@@ -30,12 +30,13 @@ public final class AFCalculationResultUnitTest extends BaseTest {
     public Object[][] makeTestCombineGLs() {
         List<Object[]> tests = new ArrayList<>();
 
-        tests.add(new Object[]{new MyTest(log10Even, log10Even)});
+        tests.add(new Object[]{new MyTest(logEven, logEven)});
 
+        //TODO: I don't think I have to switch to natural log, but in case it fails. . .
         for ( double L0 = -1e9; L0 < 0.0; L0 /= 10.0 ) {
             for ( double L1 = -1e2; L1 < 0.0; L1 /= 100.0 ) {
                 final double[] input = new double[]{L0, L1};
-                final double[] expected = MathUtils.normalizeFromLog10(input, true);
+                final double[] expected = MathUtils.normalizeFromLog(input, true);
                 tests.add(new Object[]{new MyTest(input, expected)});
             }
         }
@@ -63,7 +64,7 @@ public final class AFCalculationResultUnitTest extends BaseTest {
     }
 
 
-    static final double[] log10Even = MathUtils.normalizeFromLog10(new double[]{0.5, 0.5}, true);
+    static final double[] logEven = MathUtils.normalizeFromLog(new double[]{0.5, 0.5}, true);
     private static final Allele C = Allele.create("C");
     private static final Allele A = Allele.create("A", true);
     static final List<Allele> alleles = Arrays.asList(A, C);
@@ -71,13 +72,13 @@ public final class AFCalculationResultUnitTest extends BaseTest {
     @Test(dataProvider = "TestComputePosteriors")
     private void testComputingPosteriors(final MyTest data) {
         final int[] zeroAC = {0};
-        final AFCalculationResult result = new AFCalculationResult(zeroAC, alleles, data.Ls, log10Even, Collections.singletonMap(C, -1.0));
+        final AFCalculationResult result = new AFCalculationResult(zeroAC, alleles, data.Ls, logEven, Collections.singletonMap(C, -1.0));
 
         Assert.assertEquals(result.getLogPosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
         Assert.assertEquals(result.getLogPosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
 
-        Assert.assertEquals(result.getLogPriorOfAFEq0(), log10Even[0], 1e-3, "prior for AF > 0 not expected");
-        Assert.assertEquals(result.getLogPriorOfAFGT0(), log10Even[1], 1e-3, "prior for AF > 0 not expected");
+        Assert.assertEquals(result.getLogPriorOfAFEq0(), logEven[0], 1e-3, "prior for AF > 0 not expected");
+        Assert.assertEquals(result.getLogPriorOfAFGT0(), logEven[1], 1e-3, "prior for AF > 0 not expected");
 
         Assert.assertEquals(result.getLogLikelihoodOfAFEq0(), data.Ls[0], 1e-3, "likelihood for AF > 0 not expected");
         Assert.assertEquals(result.getLogLikelihoodOfAFGT0(), data.Ls[1], 1e-3, "likelihood for AF > 0 not expected");
@@ -93,7 +94,7 @@ public final class AFCalculationResultUnitTest extends BaseTest {
 
         Assert.assertEquals(result.getAlleleCountsOfMLE(), zeroAC, "getAlleleCountsOfMLE not as expected");
         final double[] actualPosteriors = {result.getLogPosteriorOfAFEq0(), result.getLogPosteriorOfAFGT0()};
-        Assert.assertEquals(MathUtils.sumLog10(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
+        Assert.assertEquals(MathUtils.sumLog(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
     }
 
     @DataProvider(name = "TestIsPolymorphic")
@@ -102,8 +103,8 @@ public final class AFCalculationResultUnitTest extends BaseTest {
 
         final List<Double> pValues = new LinkedList<>();
         for ( final double p : Arrays.asList(0.01, 0.1, 0.9, 0.99, 0.999, 1 - 1e-4, 1 - 1e-5, 1 - 1e-6) )
-            for ( final double espilon : Arrays.asList(-1e-7, 0.0, 1e-7) )
-                pValues.add(p + espilon);
+            for ( final double epsilon : Arrays.asList(-1e-7, 0.0, 1e-7) )
+                pValues.add(p + epsilon);
 
         for ( final double pNonRef : pValues  ) {
             for ( final double pThreshold : pValues ) {
@@ -121,15 +122,15 @@ public final class AFCalculationResultUnitTest extends BaseTest {
         return new AFCalculationResult(
                 new int[]{0},
                 alleles,
-                MathUtils.normalizeFromLog10(new double[]{1 - pNonRef, pNonRef}, true, false),
-                log10Even,
-                Collections.singletonMap(C, Math.log10(1 - pNonRef)));
+                MathUtils.normalizeFromLog(new double[]{1 - pNonRef, pNonRef}, true, false),
+                logEven,
+                Collections.singletonMap(C, Math.log(1 - pNonRef)));
     }
 
     @Test(dataProvider = "TestIsPolymorphic")
     private void testIsPolymorphic(final double pNonRef, final double pThreshold, final boolean shouldBePoly) {
             final AFCalculationResult result = makePolymorphicTestData(pNonRef);
-            final boolean actualIsPoly = result.isPolymorphic(C, Math.log10(1 - pThreshold));
+            final boolean actualIsPoly = result.isPolymorphic(C, Math.log(1 - pThreshold));
             Assert.assertEquals(actualIsPoly, shouldBePoly,
                     "isPolymorphic with pNonRef " + pNonRef + " and threshold " + pThreshold + " returned "
                             + actualIsPoly + " but the expected result is " + shouldBePoly);
@@ -147,12 +148,12 @@ public final class AFCalculationResultUnitTest extends BaseTest {
 
     @Test(dataProvider = "TestComputePosteriors")
     private void test(final MyTest data) {
-        final AFCalculationResult result = new AFCalculationResult(new int[]{0}, alleles, data.Ls, log10Even, Collections.singletonMap(C, -1.0));
+        final AFCalculationResult result = new AFCalculationResult(new int[]{0}, alleles, data.Ls, logEven, Collections.singletonMap(C, -1.0));
 
         Assert.assertEquals(result.getLogPosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
         Assert.assertEquals(result.getLogPosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
 
         final double[] actualPosteriors = {result.getLogPosteriorOfAFEq0(), result.getLogPosteriorOfAFGT0()};
-        Assert.assertEquals(MathUtils.sumLog10(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
+        Assert.assertEquals(MathUtils.sumLog(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
     }
 }

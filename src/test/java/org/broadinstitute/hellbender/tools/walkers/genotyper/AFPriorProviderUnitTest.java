@@ -20,21 +20,21 @@ public final class AFPriorProviderUnitTest extends BaseTest {
     public void testHeterozygosityProvider(final double h, final int useCount, final int minPloidy, final int maxPloidy) {
         final double het = h / maxPloidy;
         final Random rdn = Utils.getRandomGenerator();
-        final int[] plodies = new int[useCount];
+        final int[] ploidies = new int[useCount];
         for (int i = 0; i < useCount; i++)
-            plodies[i] = rdn.nextInt(maxPloidy - minPloidy + 1) + minPloidy;
+            ploidies[i] = rdn.nextInt(maxPloidy - minPloidy + 1) + minPloidy;
 
         final AFPriorProvider provider = new HeterozygosityAFPriorProvider(het);
         for (int i = 0; i < useCount; i++) {
-            final int ploidy = plodies[i];
+            final int ploidy = ploidies[i];
             double[] priors = provider.forTotalPloidy(ploidy);
             Assert.assertNotNull(priors);
             Assert.assertEquals(priors.length, ploidy + 1);
-            Assert.assertEquals(MathUtils.approximateLog10SumLog10(priors), 0, TOLERANCE);
+            Assert.assertEquals(MathUtils.approximateLogSumLog(priors), 0, TOLERANCE);
             for (int j = 0; j < priors.length; j++) {
                 Assert.assertTrue(!Double.isNaN(priors[j]));
                 Assert.assertTrue(priors[j] < 0);
-                if (j > 0) Assert.assertEquals(priors[j], Math.log10(het) - Math.log10(j));
+                if (j > 0) Assert.assertEquals(priors[j], Math.log(het) - Math.log(j));
             }
         }
     }
@@ -78,14 +78,13 @@ public final class AFPriorProviderUnitTest extends BaseTest {
         Assert.assertNotNull(providedPriors);
         Assert.assertEquals(providedPriors.length, priors.length + 1);
         for (int i = 0; i < priors.length; i++)
-            Assert.assertEquals(providedPriors[i + 1], Math.log10(priors[i]), TOLERANCE);
-        Assert.assertEquals(MathUtils.approximateLog10SumLog10(providedPriors), 0, TOLERANCE);
+            Assert.assertEquals(providedPriors[i + 1], Math.log(priors[i]), TOLERANCE);
+        Assert.assertEquals(MathUtils.approximateLogSumLog(providedPriors), 0, TOLERANCE);
     }
 
 
     private double[] hets = { 0.00001, 0.001, 0.1, 0.5, 0.99, 0.999 };
     private int[] useCounts = { 10, 100, 1000 };
-
     private int[] ploidy = { 1 , 2, 3, 10, 100, 200, 500};
 
     @DataProvider(name="CustomProviderData")

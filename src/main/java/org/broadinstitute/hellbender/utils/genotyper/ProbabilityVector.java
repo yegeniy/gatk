@@ -9,7 +9,7 @@ public final class ProbabilityVector {
     private final int minVal;
     private final int maxVal;
 
-    static final double LOG_DYNAMIC_RANGE = MathUtils.LOG10_TO_LOG_CONVERSION * 10; // values X below max vector value will be removed
+    static final double LOG_DYNAMIC_RANGE = MathUtils.log10ToLog(10); // values X below max vector value will be removed
 
     /**
      * Default constructor: take vector in log-space, with support from range [0,len-1]

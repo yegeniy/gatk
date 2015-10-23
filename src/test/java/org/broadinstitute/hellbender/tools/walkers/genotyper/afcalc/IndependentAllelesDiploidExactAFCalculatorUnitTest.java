@@ -144,7 +144,7 @@ public final class IndependentAllelesDiploidExactAFCalculatorUnitTest extends Ba
     @Test(dataProvider = "ThetaNTests")
     public void testThetaNTests(final List<Double> log10LAlleles, final double pRef) {
         // biallelic
-        final double[] rawPriors = MathUtils.toLog10(new double[]{pRef, 1 - pRef});
+        final double[] rawPriors = MathUtils.toLog(new double[]{pRef, 1 - pRef});
 
         final double log10pNonRef = Math.log10(1 - pRef);
 

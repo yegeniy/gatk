@@ -19,7 +19,7 @@ public final class MathUtils {
      */
     public static final double LOG_P_OF_ZERO = -1000000.0;
 
-    public static final double LOG10_TO_LOG_CONVERSION = Math.log(10);
+    public static final double LOG_10 = Math.log(10);
 
     public static final double LOG_ONE_HALF = Math.log(1/2);
 
@@ -193,6 +193,10 @@ public final class MathUtils {
         return b + JacobianLogTable.get(diff);
     }
 
+    public static double sumLog(final double[] logvalues) {
+        return Math.exp(logSumLog(logvalues));
+    }
+
     public static double sum(final double[] values) {
         double s = 0.0;
         for (double v : values)
@@ -269,6 +273,20 @@ public final class MathUtils {
         if ( sum != n )
             throw new IllegalArgumentException("k and n: Sum of observations in multinomial must sum to total number of trials");
         return logFactorial(n) - denominator;
+    }
+
+    /**
+     * Converts a real space array of numbers (typically probabilities) into a log array
+     *
+     * @param prRealSpace
+     * @return
+     */
+    public static double[] toLog(final double[] prRealSpace) {
+        final double[] logs = new double[prRealSpace.length];
+        for (int i = 0; i < prRealSpace.length; i++) {
+            logs[i] = Math.log(prRealSpace[i]);
+        }
+        return logs;
     }
 
     /**
@@ -463,6 +481,39 @@ public final class MathUtils {
         return normalized;
     }
 
+
+    public static int minElementIndex(final double[] array) {
+        if (array == null || array.length == 0) {
+            throw new IllegalArgumentException("Array cannot be null!");
+        }
+
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI]) {
+                minI = i;
+            }
+        }
+        return minI;
+    }
+
+    public static int minElementIndex(final int[] array) {
+        if (array == null || array.length == 0)
+            throw new IllegalArgumentException("Array cannot be null!");
+
+        int minI = 0;
+        for (int i = 1; i < array.length; i++) {
+            if (array[i] < array[minI])
+                minI = i;
+        }
+
+        return minI;
+    }
+
+    public static int arrayMin(final int[] array) {
+        return array[minElementIndex(array)];
+    }
+
+
     public static int maxElementIndex(final double[] array) {
         return maxElementIndex(array, array.length);
     }
@@ -522,6 +573,21 @@ public final class MathUtils {
     public static boolean goodProbability(final double result) {
         return result >= 0.0 && result <= 1.0 && ! Double.isInfinite(result) && ! Double.isNaN(result);
     }
+
+
+    public static double log10ToLog(final double log10){
+        return log10 * LOG_10;
+    }
+
+    /**
+     * Converts LN to LOG10
+     * @param ln log(x)
+     * @return log10(x)
+     */
+    public static double lnToLog10(final double ln) {
+        return ln / LOG_10;
+    }
+
 
     //
     // useful common utility routines
@@ -762,5 +828,15 @@ public final class MathUtils {
         final double[] ds = new double[is.length];
         for (int i = 0; i < is.length; ++i) ds[i] = is[i];
         return ds;
+    }
+
+    public static int countOccurrences(final boolean element, final boolean[] array) {
+        int count = 0;
+        for (final boolean b : array) {
+            if (element == b)
+                count++;
+        }
+
+        return count;
     }
 }

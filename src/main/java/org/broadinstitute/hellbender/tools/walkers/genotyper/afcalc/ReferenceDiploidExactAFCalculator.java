@@ -21,7 +21,7 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
     protected AFCalculationResult computeLogPNonRef(final VariantContext vc, final int defaultPloidy,
                                                     final double[] logAlleleFrequencyPriors, final StateTracker stateTracker) {
         Utils.nonNull(vc, "vc is null");
-        Utils.nonNull(logAlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
+        Utils.nonNull(logAlleleFrequencyPriors, "logAlleleFrequencyPriors is null");
         Utils.nonNull(stateTracker, "stateTracker is null");
         final int numAlternateAlleles = vc.getNAlleles() - 1;
 
@@ -43,7 +43,7 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
 
         while ( !ACqueue.isEmpty() ) {
 
-            // compute log10Likelihoods
+            // compute logLikelihoods
             final ExactACset set = ACqueue.remove();
 
             calculateAlleleCountConformation(set, genotypeLikelihoods, numChr, ACqueue, indexesToACset, logAlleleFrequencyPriors,stateTracker);
@@ -64,7 +64,7 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
                                                     final double[] logAlleleFrequencyPriors,
                                                     final StateTracker stateTracker) {
 
-        // compute the log10Likelihoods
+        // compute the logLikelihoods
         computeLofK(set, genotypeLikelihoods, logAlleleFrequencyPriors, stateTracker);
 
         final double logLofK = set.getLogLikelihoods(set.size()-1);

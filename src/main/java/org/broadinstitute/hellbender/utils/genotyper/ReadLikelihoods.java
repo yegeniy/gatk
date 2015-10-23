@@ -811,7 +811,7 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
 
     private boolean readIsPoorlyModelled(final int sampleIndex, final int readIndex, final GATKRead read, final double maxErrorRatePerBase) {
         final double maxErrorsForRead = Math.min(2.0, Math.ceil(read.getLength() * maxErrorRatePerBase));
-        final double logQualPerBase = -4.0 * MathUtils.LOG10_TO_LOG_CONVERSION;
+        final double logQualPerBase = MathUtils.log10ToLog(-4.0);
         final double logMaxLikelihoodForTrueAllele = maxErrorsForRead * logQualPerBase;
 
         final int alleleCount = alleles.numberOfAlleles();
