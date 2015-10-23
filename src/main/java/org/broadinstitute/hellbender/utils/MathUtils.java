@@ -4,6 +4,7 @@ import org.apache.commons.math3.linear.EigenDecomposition;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.special.Gamma;
+import org.apache.commons.math3.util.MathArrays;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 
 import java.util.Arrays;
@@ -247,6 +248,10 @@ public final class MathUtils {
             result[k] = x[k]-y[k];
 
         return result;
+    }
+
+    public static double[] vectorSum(double[] x, double[] y) {
+        return MathArrays.ebeAdd(x, y);
     }
 
     /**

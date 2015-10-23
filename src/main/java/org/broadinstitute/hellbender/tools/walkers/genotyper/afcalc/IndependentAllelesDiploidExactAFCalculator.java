@@ -4,6 +4,7 @@ import com.google.common.annotations.VisibleForTesting;
 import htsjdk.variant.variantcontext.*;
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeLikelihoodCalculators;
 import org.broadinstitute.hellbender.utils.MathUtils;
+import org.broadinstitute.hellbender.utils.QualityUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
 
@@ -66,7 +67,7 @@ import java.util.*;
 
     private static final int[] BIALLELIC_NON_INFORMATIVE_PLS = {0,0,0};
     private static final List<Allele> BIALLELIC_NOCALL = Arrays.asList(Allele.NO_CALL, Allele.NO_CALL);
-    private static final double PHRED_2_LOG10_COEFF = -.1;
+    private static final double PHRED_2_LOG_COEFF = QualityUtils.PHRED_TO_LOG_PROB_MULTIPLIER;
 
     /**
      * Sorts AFCalcResults by their posteriors of AF > 0, so the
@@ -108,9 +109,9 @@ import java.util.*;
         }
     }
 
-    private AFCalculationResult combineAltAlleleIndependentExact(final VariantContext vc, final int defaultPloidy, final double[] log10AlleleFrequencyPriors) {
+    private AFCalculationResult combineAltAlleleIndependentExact(final VariantContext vc, final int defaultPloidy, final double[] logAlleleFrequencyPriors) {
         final VariantContext combinedAltAllelesVariantContext = makeCombinedAltAllelesVariantContext(vc);
-        return biAlleleExactModel.getLogPNonRef(combinedAltAllelesVariantContext, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
+        return biAlleleExactModel.getLogPNonRef(combinedAltAllelesVariantContext, defaultPloidy, vc.getNAlleles() - 1, logAlleleFrequencyPriors);
     }
 
     private static VariantContext makeCombinedAltAllelesVariantContext(final VariantContext vc) {
@@ -157,15 +158,15 @@ import java.util.*;
      * the result of each, in order of the alt alleles in VC
      *
      * @param vc the VariantContext we want to analyze, with at least 1 alt allele
-     * @param log10AlleleFrequencyPriors the priors
+     * @param logAlleleFrequencyPriors the priors
      * @return a list of the AFCalcResults for each bi-allelic sub context of vc
      */
     private List<AFCalculationResult> computeAlleleIndependentExact(final VariantContext vc, final int defaultPloidy,
-                                                                    final double[] log10AlleleFrequencyPriors) {
+                                                                    final double[] logAlleleFrequencyPriors) {
         final List<AFCalculationResult> results = new LinkedList<>();
 
         for ( final VariantContext subvc : makeAlleleConditionalContexts(vc) ) {
-            final AFCalculationResult resultTracker = biAlleleExactModel.getLogPNonRef(subvc, defaultPloidy, vc.getNAlleles() - 1, log10AlleleFrequencyPriors);
+            final AFCalculationResult resultTracker = biAlleleExactModel.getLogPNonRef(subvc, defaultPloidy, vc.getNAlleles() - 1, logAlleleFrequencyPriors);
             results.add(resultTracker);
         }
 
@@ -224,8 +225,6 @@ import java.util.*;
     /**
      * Returns a new Genotype with the PLs of the multi-allelic original reduced to a bi-allelic case.
      *
-     * <p>Uses the log-sum-exp trick in order to work well with very low PLs</p>
-     *
      * <p>This is handled in the following way:</p>
      *
      * <p>Suppose we have for a A/B/C site the following GLs:</p>
@@ -239,7 +238,7 @@ import java.util.*;
      * BB = BB                                     <br/>
      * </p>
      * <p>
-     *     This implementation use the log sum trick in order to avoid numeric inestability.
+     *     This implementation use the log sum trick in order to avoid numeric instability with very low PLs.
      * </p>
      *
      * @param original the original multi-allelic genotype
@@ -276,19 +275,19 @@ import java.util.*;
             final int j = pair.alleleIndex2;
             if (i == j) {
               if (i == altIndex) {
-                  BB = PHRED_2_LOG10_COEFF * pls[index];
+                  BB = PHRED_2_LOG_COEFF * pls[index];
               } else {
-                  XXvalues[xxOffset++] = PHRED_2_LOG10_COEFF * pls[index];
+                  XXvalues[xxOffset++] = PHRED_2_LOG_COEFF * pls[index];
               }
             } else if (i == altIndex || j == altIndex) {
-                XBvalues[xbOffset++] = PHRED_2_LOG10_COEFF * pls[index];
+                XBvalues[xbOffset++] = PHRED_2_LOG_COEFF * pls[index];
             } else {
-                XXvalues[xxOffset++] = PHRED_2_LOG10_COEFF * pls[index];
+                XXvalues[xxOffset++] = PHRED_2_LOG_COEFF * pls[index];
             }
         }
 
-        final double XB = MathUtils.log10SumLog10(XBvalues);
-        final double XX = MathUtils.log10SumLog10(XXvalues);
+        final double XB = MathUtils.logSumLog(XBvalues);
+        final double XX = MathUtils.logSumLog(XXvalues);
 
         final double[] GLs = { XX, XB, BB};
         return new GenotypeBuilder(original).PL(GLs).alleles(BIALLELIC_NOCALL).make();
@@ -302,19 +301,19 @@ import java.util.*;
         Collections.sort(sorted, compareAFCalcResultsByPNonRef);
 
         final double lastPosteriorGt0 = sorted.get(0).getLogPosteriorOfAFGT0();
-        final double log10SingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLogPriorOfAFGT0();
+        final double logSingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLogPriorOfAFGT0();
 
         for ( int i = 0; i < sorted.size(); i++ ) {
             if ( sorted.get(i).getLogPosteriorOfAFGT0() > lastPosteriorGt0 ) {
                 throw new IllegalStateException("pNonRefResults not sorted: lastPosteriorGt0 " + lastPosteriorGt0 + " but current is " + sorted.get(i).getLogPosteriorOfAFGT0());
             }
 
-                final double log10PriorAFGt0 = (i + 1) * log10SingleAllelePriorOfAFGt0;
-            final double log10PriorAFEq0 = Math.log10(1 - Math.pow(10, log10PriorAFGt0));
-            final double[] thetaTONPriors = new double[] { log10PriorAFEq0, log10PriorAFGt0 };
+            final double logPriorAFGt0 = (i + 1) * logSingleAllelePriorOfAFGt0;
+            final double logPriorAFEq0 = Math.log(1 - Math.exp(logPriorAFGt0));
+            final double[] thetaTONPriors = new double[] { logPriorAFEq0, logPriorAFGt0 };
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
-            sorted.set(i, sorted.get(i).copyWithNewPriors(MathUtils.normalizeFromLog10(thetaTONPriors, true)));
+            sorted.set(i, sorted.get(i).copyWithNewPriors(MathUtils.normalizeFromLog(thetaTONPriors, true)));
         }
 
         return sorted;
@@ -340,7 +339,7 @@ import java.util.*;
 
         final int nAltAlleles = sortedResultsWithThetaNPriors.size();
         final int[] alleleCountsOfMLE = new int[nAltAlleles];
-        final Map<Allele, Double> log10pRefByAllele = new HashMap<>(nAltAlleles);
+        final Map<Allele, Double> logpRefByAllele = new HashMap<>(nAltAlleles);
 
         // the sum of the log10 posteriors for AF == 0 and AF > 0 to determine joint probs
 
@@ -352,15 +351,15 @@ import java.util.*;
             alleleCountsOfMLE[altI] = sortedResultWithThetaNPriors.getAlleleCountAtMLE(altAllele);
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
-            log10pRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLogPosteriorOfAFEq0());
+            logpRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLogPosteriorOfAFEq0());
         }
 
         return new AFCalculationResult(alleleCountsOfMLE, vc.getAlleles(),
                 // necessary to ensure all values < 0
-                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLogLikelihoodOfAFEq0(), combinedAltAllelesResult.getLogLikelihoodOfAFGT0() }, true),
+                MathUtils.normalizeFromLog(new double[] { combinedAltAllelesResult.getLogLikelihoodOfAFEq0(), combinedAltAllelesResult.getLogLikelihoodOfAFGT0() }, true),
                 // priors incorporate multiple alt alleles, must be normalized
-                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLogPriorOfAFEq0(), combinedAltAllelesResult.getLogPriorOfAFGT0() }, true),
-                log10pRefByAllele);
+                MathUtils.normalizeFromLog(new double[] { combinedAltAllelesResult.getLogPriorOfAFEq0(), combinedAltAllelesResult.getLogPriorOfAFGT0() }, true),
+                logpRefByAllele);
     }
 
     private static boolean combineAltAlleleLikelihoods(final Genotype g, final int plMaxIndex, final double[] dest,
@@ -375,14 +374,14 @@ import java.util.*;
         for (int plIndex = 1; plIndex < plMaxIndex; plIndex++) {
             final GenotypeLikelihoods.GenotypeLikelihoodsAllelePair alleles = GenotypeLikelihoods.getAllelePair(plIndex);
             if (alleles.alleleIndex1 == 0 || alleles.alleleIndex2 == 0) {
-                hetLikelihoods[hetNextIndex++] = pls[plIndex] * PHRED_2_LOG10_COEFF;
+                hetLikelihoods[hetNextIndex++] = pls[plIndex] * PHRED_2_LOG_COEFF;
             } else {
-                homAltLikelihoods[homAltNextIndex++] = pls[plIndex] * PHRED_2_LOG10_COEFF;
+                homAltLikelihoods[homAltNextIndex++] = pls[plIndex] * PHRED_2_LOG_COEFF;
             }
         }
-        dest[0] = pls[0] * PHRED_2_LOG10_COEFF;
-        dest[1] = MathUtils.approximateLog10SumLog10(hetLikelihoods);
-        dest[2] = MathUtils.approximateLog10SumLog10(homAltLikelihoods);
+        dest[0] = pls[0] * PHRED_2_LOG_COEFF;
+        dest[1] = MathUtils.approximateLogSumLog(hetLikelihoods);
+        dest[2] = MathUtils.approximateLogSumLog(homAltLikelihoods);
         return true;
     }
 }

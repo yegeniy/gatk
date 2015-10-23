@@ -72,6 +72,9 @@ abstract class ExactAFCalculator extends AFCalculator {
         }
         for ( final Genotype sample : GLs.iterateInSampleNameOrder() ) {
             if ( sample.hasLikelihoods() ) {
+
+                //Genotype::getLikelihoods returns an htsjdk GenotypeLikelihoods object that converts phred-scaled
+                //PLs into log10-scaled GLs
                 final double[] gls = sample.getLikelihoods().getAsVector();
 
                 if ( MathUtils.sum(gls) < GATKVariantContextUtils.SUM_GL_THRESH_NOCALL ) {
