@@ -146,6 +146,7 @@ import java.util.*;
                 gb.alleles(newAlleles);
             }
             if (combineAltAlleleLikelihoods(oldGenotype, genotypeCount, newLikelihoods, hetLikelihoods, homAltLikelihoods)) {
+                //htsjdk GenomeBuilder assumes GLs are log10-based; newLikelihoods = {0,0,0} is the same in log10 or natural log
                 gb.PL(newLikelihoods);
             }
             newGenotypes.add(gb.make());

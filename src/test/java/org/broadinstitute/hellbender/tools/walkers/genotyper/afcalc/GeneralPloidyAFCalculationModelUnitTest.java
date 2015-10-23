@@ -81,7 +81,8 @@ public final class GeneralPloidyAFCalculationModelUnitTest extends BaseTest {
         
         for (int i=0; i < ploidy; i++)
             alleles[i] = Allele.NO_CALL;
-        
+
+        //TODO: GenotypeBuilder assumes log10 GLs
         return new GenotypeBuilder(name, Arrays.asList(alleles)).PL(gls).make();
     }                              
 
