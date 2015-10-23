@@ -170,11 +170,11 @@ public final class IndependentAllelesDiploidExactAFCalculatorUnitTest extends Ba
 
             Assert.assertNotNull(orig, "couldn't find original AFCalc");
 
-            Assert.assertEquals(orig.getLog10PriorOfAFGT0(), log10pNonRef, 1e-6);
-            Assert.assertEquals(thetaN.getLog10PriorOfAFGT0(), pNonRefN.get(i), 1e-6);
+            Assert.assertEquals(orig.getLogPriorOfAFGT0(), log10pNonRef, 1e-6);
+            Assert.assertEquals(thetaN.getLogPriorOfAFGT0(), pNonRefN.get(i), 1e-6);
 
-            Assert.assertTrue(orig.getLog10PosteriorOfAFGT0() <= prevPosterior, "AFCalc results should be sorted but " + prevPosterior + " is > original posterior " + orig.getLog10PosteriorOfAFGT0());
-            prevPosterior = orig.getLog10PosteriorOfAFGT0();
+            Assert.assertTrue(orig.getLogPosteriorOfAFGT0() <= prevPosterior, "AFCalc results should be sorted but " + prevPosterior + " is > original posterior " + orig.getLogPosteriorOfAFGT0());
+            prevPosterior = orig.getLogPosteriorOfAFGT0();
         }
     }
 

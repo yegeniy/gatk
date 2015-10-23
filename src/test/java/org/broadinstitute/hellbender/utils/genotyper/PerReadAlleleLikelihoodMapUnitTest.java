@@ -91,14 +91,14 @@ public final class PerReadAlleleLikelihoodMapUnitTest extends BaseTest {
         final MostLikelyAllele mla = PerReadAlleleLikelihoodMap.getMostLikelyAllele(Collections.emptyMap());
         Assert.assertTrue(mla.getMostLikelyAllele().isNoCall());
         Assert.assertNull(mla.getSecondMostLikelyAllele());
-        Assert.assertEquals(mla.getLog10LikelihoodOfMostLikely(), Double.NEGATIVE_INFINITY);
-        Assert.assertEquals(mla.getLog10LikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla.getLogLikelihoodOfMostLikely(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla.getLogLikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
 
         final MostLikelyAllele mla2 = PerReadAlleleLikelihoodMap.getMostLikelyAllele(Collections.singletonMap(base_A, -0.04));
         Assert.assertFalse(mla2.getMostLikelyAllele().isNoCall());
         Assert.assertNull(mla2.getSecondMostLikelyAllele());
-        Assert.assertEquals(mla2.getLog10LikelihoodOfMostLikely(), -0.04);
-        Assert.assertEquals(mla2.getLog10LikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla2.getLogLikelihoodOfMostLikely(), -0.04);
+        Assert.assertEquals(mla2.getLogLikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
 
         //clear makes it empty
         perReadAlleleLikelihoodMap.clear();

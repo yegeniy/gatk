@@ -21,6 +21,8 @@ public final class MathUtils {
 
     public static final double LOG10_TO_LOG_CONVERSION = Math.log(10);
 
+    public static final double LOG_ONE_HALF = Math.log(1/2);
+
     private static final double LOG1MEXP_THRESHOLD = Math.log(0.5);
 
     /**
@@ -114,6 +116,29 @@ public final class MathUtils {
         return (d > 0.0) ? (int) (d + 0.5d) : (int) (d - 0.5d);
     }
 
+    /**
+     * Check that the log prob vector vector is well formed
+     *
+     * @param vector
+     * @param expectedSize
+     * @param shouldSumToOne
+     *
+     * @return true if vector is well-formed, false otherwise
+     */
+    public static boolean goodLogProbVector(final double[] vector, final int expectedSize, final boolean shouldSumToOne) {
+        if ( vector.length != expectedSize ) return false;
+
+        for ( final double pr : vector ) {
+            if ( ! goodLogProbability(pr) )
+                return false;
+        }
+
+        if ( shouldSumToOne && compareDoubles(logSumLog(vector), 0.0, 1e-4) != 0 )
+            return false;
+
+        return true; // everything is good
+    }
+
     public static double approximateLogSumLog(final double[] vals) {
         return approximateLogSumLog(vals, vals.length);
     }
@@ -199,6 +224,51 @@ public final class MathUtils {
     /** Returns the sum of the elements in the array starting with start and ending before stop. */
     public static long sum(final long[] arr, final int start, final int stop) {
         return sum(Arrays.copyOfRange(arr, start, stop));
+    }
+
+    /** Compute Z=X-Y for two numeric vectors X and Y
+     *
+     * @param x                 First vector
+     * @param y                 Second vector
+     * @return Vector of same length as x and y so that z[k] = x[k]-y[k]
+     */
+    public static int[] vectorDiff(final int[]x, final int[] y) {
+        Utils.nonNull(x, "x is null");
+        Utils.nonNull(y, "y is null");
+        if (x.length != y.length)
+            throw new IllegalArgumentException("BUG: Lengths of x and y must be the same");
+
+        int[] result = new int[x.length];
+        for (int k=0; k <x.length; k++)
+            result[k] = x[k]-y[k];
+
+        return result;
+    }
+
+    /**
+     * Calculates the log of the multinomial coefficient. Designed to prevent
+     * overflows even with very large numbers.
+     *
+     * @param n total number of trials
+     * @param k array of any size with the number of successes for each grouping (k1, k2, k3, ..., km)
+     * @return {@link Double#NaN NaN} if {@code a > 0}, otherwise the corresponding value.
+     */
+    public static double logMultinomialCoefficient(final int n, final int[] k) {
+        if ( n < 0 )
+            throw new IllegalArgumentException("n: Must have non-negative number of trials");
+        double denominator = 0.0;
+        int sum = 0;
+        for (int x : k) {
+            if ( x < 0 )
+                throw new IllegalArgumentException("x element of k: Must have non-negative observations of group");
+            if ( x > n )
+                throw new IllegalArgumentException("x element of k, n: Group observations must be bounded by k");
+            denominator += logFactorial(x);
+            sum += x;
+        }
+        if ( sum != n )
+            throw new IllegalArgumentException("k and n: Sum of observations in multinomial must sum to total number of trials");
+        return logFactorial(n) - denominator;
     }
 
     /**

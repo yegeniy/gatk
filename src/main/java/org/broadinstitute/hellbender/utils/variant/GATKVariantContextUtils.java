@@ -19,6 +19,8 @@ import java.util.stream.Collectors;
 public final class GATKVariantContextUtils {
 
     private static final Logger logger = LogManager.getLogger(GATKVariantContextUtils.class);
+
+    //TODO: switch to natural log?
     public static final double SUM_GL_THRESH_NOCALL = -0.1; // if sum(gl) is bigger than this threshold, we treat GL's as non-informative and will force a no-call.
 
     public static final int DEFAULT_PLOIDY = HomoSapiensConstants.DEFAULT_PLOIDY;

@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.broadinstitute.hellbender.utils.GenomeLoc;
+import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.Utils;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 import org.broadinstitute.hellbender.utils.variant.GATKVCFConstants;
@@ -770,7 +771,7 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
     }
 
     /**
-     * Removes those read that the best possible likelihood given any allele is just too low.
+     * Removes reads for which the best possible likelihood given any allele is too low.
      *
      * <p>
      *     This is determined by a maximum error per read-base against the best likelihood possible.
@@ -810,13 +811,13 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
 
     private boolean readIsPoorlyModelled(final int sampleIndex, final int readIndex, final GATKRead read, final double maxErrorRatePerBase) {
         final double maxErrorsForRead = Math.min(2.0, Math.ceil(read.getLength() * maxErrorRatePerBase));
-        final double log10QualPerBase = -4.0;
-        final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
+        final double logQualPerBase = -4.0 * MathUtils.LOG10_TO_LOG_CONVERSION;
+        final double logMaxLikelihoodForTrueAllele = maxErrorsForRead * logQualPerBase;
 
         final int alleleCount = alleles.numberOfAlleles();
         final double[][] sampleValues = valuesBySampleIndex[sampleIndex];
         for (int a = 0; a < alleleCount; a++) {
-            if (sampleValues[a][readIndex] >= log10MaxLikelihoodForTrueAllele) {
+            if (sampleValues[a][readIndex] >= logMaxLikelihoodForTrueAllele) {
                 return false;
             }
         }

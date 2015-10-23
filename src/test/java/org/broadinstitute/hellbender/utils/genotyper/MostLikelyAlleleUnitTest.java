@@ -11,7 +11,7 @@ public final class MostLikelyAlleleUnitTest extends BaseTest {
 
     @Test(expectedExceptions = IllegalArgumentException.class)
     public void testErrorMostLikely() throws Exception {
-        final double second = -1 - MostLikelyAllele.INFORMATIVE_LIKELIHOOD_THRESHOLD - 1;
+        final double second = -1 - MostLikelyAllele.INFORMATIVE_LOG_LIKELIHOOD_THRESHOLD - 1;
         new MostLikelyAllele(a, b, 0.5, second);
     }
 
@@ -27,12 +27,12 @@ public final class MostLikelyAlleleUnitTest extends BaseTest {
 
     @Test
     public void testBasicCreation() {
-        final double second = -1 - MostLikelyAllele.INFORMATIVE_LIKELIHOOD_THRESHOLD - 1;
+        final double second = -1 - MostLikelyAllele.INFORMATIVE_LOG_LIKELIHOOD_THRESHOLD - 1;
         MostLikelyAllele mla = new MostLikelyAllele(a, b, -1.0, second);
         Assert.assertEquals(mla.getMostLikelyAllele(), a);
         Assert.assertEquals(mla.getSecondMostLikelyAllele(), b);
-        Assert.assertEquals(mla.getLog10LikelihoodOfMostLikely(), -1.0);
-        Assert.assertEquals(mla.getLog10LikelihoodOfSecondBest(), second);
+        Assert.assertEquals(mla.getLogLikelihoodOfMostLikely(), -1.0);
+        Assert.assertEquals(mla.getLogLikelihoodOfSecondBest(), second);
 
         Assert.assertEquals(mla.isInformative(), true);
         Assert.assertEquals(mla.isInformative(10), false);
@@ -44,7 +44,7 @@ public final class MostLikelyAlleleUnitTest extends BaseTest {
 
     @Test
     public void testNotDefaultInformative() {
-        final double second = -1.0 - (MostLikelyAllele.INFORMATIVE_LIKELIHOOD_THRESHOLD - 1e-2);
+        final double second = -1.0 - (MostLikelyAllele.INFORMATIVE_LOG_LIKELIHOOD_THRESHOLD - 1e-2);
         MostLikelyAllele mla = new MostLikelyAllele(a, b, -1.0, second);
         Assert.assertEquals(mla.isInformative(), false);
         Assert.assertEquals(mla.isInformative(10), false);
@@ -59,8 +59,8 @@ public final class MostLikelyAlleleUnitTest extends BaseTest {
         MostLikelyAllele mla = new MostLikelyAllele(a, null, -1.0, Double.NEGATIVE_INFINITY);
         Assert.assertEquals(mla.getMostLikelyAllele(), a);
         Assert.assertEquals(mla.getSecondMostLikelyAllele(), null);
-        Assert.assertEquals(mla.getLog10LikelihoodOfMostLikely(), -1.0);
-        Assert.assertEquals(mla.getLog10LikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla.getLogLikelihoodOfMostLikely(), -1.0);
+        Assert.assertEquals(mla.getLogLikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
 
         Assert.assertEquals(mla.isInformative(), true);
         Assert.assertEquals(mla.isInformative(10), true);
@@ -74,8 +74,8 @@ public final class MostLikelyAlleleUnitTest extends BaseTest {
     public void testCreationNoAllele() {
         MostLikelyAllele mla = new MostLikelyAllele(Allele.NO_CALL, null, Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
         Assert.assertEquals(mla.getMostLikelyAllele(), Allele.NO_CALL);
-        Assert.assertEquals(mla.getLog10LikelihoodOfMostLikely(), Double.NEGATIVE_INFINITY);
-        Assert.assertEquals(mla.getLog10LikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla.getLogLikelihoodOfMostLikely(), Double.NEGATIVE_INFINITY);
+        Assert.assertEquals(mla.getLogLikelihoodOfSecondBest(), Double.NEGATIVE_INFINITY);
 
         Assert.assertEquals(mla.isInformative(), false);
         Assert.assertEquals(mla.isInformative(10), false);

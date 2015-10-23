@@ -71,7 +71,7 @@ import java.util.*;
     /**
      * Sorts AFCalcResults by their posteriors of AF > 0, so the
      */
-    private static final Comparator<AFCalculationResult> compareAFCalcResultsByPNonRef = Comparator.<AFCalculationResult>comparingDouble(o -> o.getLog10PosteriorOfAFGT0()).reversed();
+    private static final Comparator<AFCalculationResult> compareAFCalcResultsByPNonRef = Comparator.<AFCalculationResult>comparingDouble(o -> o.getLogPosteriorOfAFGT0()).reversed();
 
     /**
      * The AFCalc model we are using to do the bi-allelic computation
@@ -301,12 +301,12 @@ import java.util.*;
         // sort the results, so the most likely allele is first
         Collections.sort(sorted, compareAFCalcResultsByPNonRef);
 
-        final double lastPosteriorGt0 = sorted.get(0).getLog10PosteriorOfAFGT0();
-        final double log10SingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLog10PriorOfAFGT0();
+        final double lastPosteriorGt0 = sorted.get(0).getLogPosteriorOfAFGT0();
+        final double log10SingleAllelePriorOfAFGt0 = conditionalPNonRefResults.get(0).getLogPriorOfAFGT0();
 
         for ( int i = 0; i < sorted.size(); i++ ) {
-            if ( sorted.get(i).getLog10PosteriorOfAFGT0() > lastPosteriorGt0 ) {
-                throw new IllegalStateException("pNonRefResults not sorted: lastPosteriorGt0 " + lastPosteriorGt0 + " but current is " + sorted.get(i).getLog10PosteriorOfAFGT0());
+            if ( sorted.get(i).getLogPosteriorOfAFGT0() > lastPosteriorGt0 ) {
+                throw new IllegalStateException("pNonRefResults not sorted: lastPosteriorGt0 " + lastPosteriorGt0 + " but current is " + sorted.get(i).getLogPosteriorOfAFGT0());
             }
 
                 final double log10PriorAFGt0 = (i + 1) * log10SingleAllelePriorOfAFGt0;
@@ -352,14 +352,14 @@ import java.util.*;
             alleleCountsOfMLE[altI] = sortedResultWithThetaNPriors.getAlleleCountAtMLE(altAllele);
 
             // bind pNonRef for allele to the posterior value of the AF > 0 with the new adjusted prior
-            log10pRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLog10PosteriorOfAFEq0());
+            log10pRefByAllele.put(altAllele, sortedResultWithThetaNPriors.getLogPosteriorOfAFEq0());
         }
 
         return new AFCalculationResult(alleleCountsOfMLE, vc.getAlleles(),
                 // necessary to ensure all values < 0
-                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLog10LikelihoodOfAFEq0(), combinedAltAllelesResult.getLog10LikelihoodOfAFGT0() }, true),
+                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLogLikelihoodOfAFEq0(), combinedAltAllelesResult.getLogLikelihoodOfAFGT0() }, true),
                 // priors incorporate multiple alt alleles, must be normalized
-                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLog10PriorOfAFEq0(), combinedAltAllelesResult.getLog10PriorOfAFGT0() }, true),
+                MathUtils.normalizeFromLog10(new double[] { combinedAltAllelesResult.getLogPriorOfAFEq0(), combinedAltAllelesResult.getLogPriorOfAFGT0() }, true),
                 log10pRefByAllele);
     }
 

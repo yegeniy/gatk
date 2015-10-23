@@ -201,13 +201,13 @@ public final class AFCalculationUnitTest extends BaseTest {
         final double TOLERANCE = maxAltAlleles > 1 ? 1000 : 0.1; // much tighter constraints on bi-allelic results
 
         if ( ! onlyPosteriorsShouldBeEqual ) {
-            Assert.assertEquals(actual.getLog10PriorOfAFEq0(), expected.getLog10PriorOfAFEq0(), TOLERANCE, "Priors AF == 0");
-            Assert.assertEquals(actual.getLog10PriorOfAFGT0(), expected.getLog10PriorOfAFGT0(), TOLERANCE, "Priors AF > 0");
-            Assert.assertEquals(actual.getLog10LikelihoodOfAFEq0(), expected.getLog10LikelihoodOfAFEq0(), TOLERANCE, "Likelihoods AF == 0");
-            Assert.assertEquals(actual.getLog10LikelihoodOfAFGT0(), expected.getLog10LikelihoodOfAFGT0(), TOLERANCE, "Likelihoods AF > 0");
+            Assert.assertEquals(actual.getLogPriorOfAFEq0(), expected.getLogPriorOfAFEq0(), TOLERANCE, "Priors AF == 0");
+            Assert.assertEquals(actual.getLogPriorOfAFGT0(), expected.getLogPriorOfAFGT0(), TOLERANCE, "Priors AF > 0");
+            Assert.assertEquals(actual.getLogLikelihoodOfAFEq0(), expected.getLogLikelihoodOfAFEq0(), TOLERANCE, "Likelihoods AF == 0");
+            Assert.assertEquals(actual.getLogLikelihoodOfAFGT0(), expected.getLogLikelihoodOfAFGT0(), TOLERANCE, "Likelihoods AF > 0");
         }
-        Assert.assertEquals(actual.getLog10PosteriorOfAFEq0(), expected.getLog10PosteriorOfAFEq0(), TOLERANCE, "Posteriors AF == 0");
-        Assert.assertEquals(actual.getLog10PosteriorOfAFGT0(), expected.getLog10PosteriorOfAFGT0(), TOLERANCE, "Posteriors AF > 0");
+        Assert.assertEquals(actual.getLogPosteriorOfAFEq0(), expected.getLogPosteriorOfAFEq0(), TOLERANCE, "Posteriors AF == 0");
+        Assert.assertEquals(actual.getLogPosteriorOfAFGT0(), expected.getLogPosteriorOfAFGT0(), TOLERANCE, "Posteriors AF > 0");
         Assert.assertTrue(Arrays.equals(actual.getAlleleCountsOfMLE(), expected.getAlleleCountsOfMLE()), "MLE ACs ");
         Assert.assertEquals(actual.getAllelesUsedInGenotyping(), expected.getAllelesUsedInGenotyping(), "Alleles used in genotyping");
 
@@ -351,7 +351,7 @@ public final class AFCalculationUnitTest extends BaseTest {
 
         final AFCalculationResult resultTracker = testBuilder.makeModel().getLogPNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
 
-        Assert.assertEquals(resultTracker.getLog10PosteriorOfAFGT0(), Math.log10(expectedPNonRef), tolerance,
+        Assert.assertEquals(resultTracker.getLogPosteriorOfAFGT0(), Math.log10(expectedPNonRef), tolerance,
                 "Actual pNonRef not within tolerance " + tolerance + " of expected");
     }
 
@@ -437,7 +437,7 @@ public final class AFCalculationUnitTest extends BaseTest {
         final AFCalculationResult testResult = testBuilder.makeModel().getLogPNonRef(vcb.make(), PLOIDY, MAX_ALT_ALLELES, testBuilder.makePriors());
 
         final double tolerance = 1e-3;
-        Assert.assertEquals(testResult.getLog10PosteriorOfAFGT0(), refResult.getLog10PosteriorOfAFGT0(), tolerance,
+        Assert.assertEquals(testResult.getLogPosteriorOfAFGT0(), refResult.getLogPosteriorOfAFGT0(), tolerance,
                 "Actual pNonRef not within tolerance " + tolerance + " of expected");
         Assert.assertEquals(testResult.getAlleleCountsOfMLE(), refResult.getAlleleCountsOfMLE(),
                 "Actual MLE " + Utils.join(",", testResult.getAlleleCountsOfMLE()) + " not equal to expected " + Utils.join(",", refResult.getAlleleCountsOfMLE()));
@@ -488,7 +488,7 @@ public final class AFCalculationUnitTest extends BaseTest {
 
             if ( ! Double.isInfinite(log10NonRefPost) ) {
                 // check that the no-prior and flat-prior constructions yield same result
-                Assert.assertEquals(resultTrackerFlat.getLog10PosteriorOfAFGT0(), resultTrackerNoPrior.getLog10PosteriorOfAFGT0());
+                Assert.assertEquals(resultTrackerFlat.getLogPosteriorOfAFGT0(), resultTrackerNoPrior.getLogPosteriorOfAFGT0());
             }
 
         }
@@ -515,7 +515,7 @@ public final class AFCalculationUnitTest extends BaseTest {
                     final double log10NonRefPost = Math.log10(nonRefPost);
 
                     if ( ! Double.isInfinite(log10NonRefPost) )
-                        Assert.assertEquals(resultTracker.getLog10PosteriorOfAFGT0(), log10NonRefPost, 1e-2);
+                        Assert.assertEquals(resultTracker.getLogPosteriorOfAFGT0(), log10NonRefPost, 1e-2);
 
                     if ( nonRefPost >= 0.9 )
                         Assert.assertTrue(resultTracker.isPolymorphic(C, -1));
@@ -642,7 +642,7 @@ public final class AFCalculationUnitTest extends BaseTest {
         for ( final boolean onePoly : expectedPoly ) anyPoly = anyPoly || onePoly;
 
         if ( anyPoly )
-            Assert.assertTrue(result.getLog10PosteriorOfAFGT0() > -1);
+            Assert.assertTrue(result.getLogPosteriorOfAFGT0() > -1);
 
         for ( int altI = 1; altI < result.getAllelesUsedInGenotyping().size(); altI++ ) {
             final int i = altI - 1;
@@ -650,7 +650,7 @@ public final class AFCalculationUnitTest extends BaseTest {
 
             // must be getCalledChrCount because we cannot ensure that the VC made has our desired ACs
             Assert.assertEquals(result.getAlleleCountAtMLE(alt), vc.getCalledChrCount(alt));
-            Assert.assertEquals(result.isPolymorphic(alt, -1), (boolean) expectedPoly.get(i), "isPolymorphic for allele " + alt + " " + result.getLog10PosteriorOfAFEq0ForAllele(alt));
+            Assert.assertEquals(result.isPolymorphic(alt, -1), (boolean) expectedPoly.get(i), "isPolymorphic for allele " + alt + " " + result.getLogPosteriorOfAFEq0ForAllele(alt));
         }
     }
 }

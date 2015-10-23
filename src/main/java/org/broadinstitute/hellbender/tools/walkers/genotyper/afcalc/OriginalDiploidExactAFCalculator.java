@@ -148,7 +148,7 @@ final class OriginalDiploidExactAFCalculator extends DiploidExactAFCalculator {
                 mleK = k;
             }
 
-            if ( log10LofK < maxLog10L - StateTracker.MAX_LOG10_ERROR_TO_STOP_EARLY ) {
+            if ( log10LofK < maxLog10L - StateTracker.MAX_LOG_ERROR_TO_STOP_EARLY) {
                 //if ( DEBUG ) System.out.printf("  *** breaking early k=%d log10L=%.2f maxLog10L=%.2f%n", k, log10LofK, maxLog10L);
                 done = true;
             }

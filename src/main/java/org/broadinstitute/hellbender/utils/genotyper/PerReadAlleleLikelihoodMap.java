@@ -150,7 +150,7 @@ public final class PerReadAlleleLikelihoodMap {
         return likelihoodReadMap.get(p.getRead()); //this will return null if the read is not in the map already.
     }
 
-    /**
+    /**]\
      * Get the most likely alleles estimated across all reads in this object
      *
      * Takes the most likely two alleles according to their diploid genotype likelihoods.  That is, for
@@ -177,10 +177,10 @@ public final class PerReadAlleleLikelihoodMap {
 
                 double haplotypeLikelihood = 0.0;
                 for( final Map.Entry<GATKRead, Map<Allele,Double>> entry : likelihoodReadMap.entrySet() ) {
-                    // Compute log10(10^x1/2 + 10^x2/2) = log10(10^x1+10^x2)-log10(2)
+                    // Compute log(exp(x1)/2 + exp(x2)/2) = log(exp(x1)+exp(x2))+log(1/2)
                     final double likelihood_i = entry.getValue().get(allele_i);
                     final double likelihood_j = entry.getValue().get(allele_j);
-                    haplotypeLikelihood += MathUtils.approximateLog10SumLog10(likelihood_i, likelihood_j) + MathUtils.LOG_ONE_HALF;
+                    haplotypeLikelihood += MathUtils.approximateLogSumLog(likelihood_i, likelihood_j) + MathUtils.LOG_ONE_HALF;
 
                     // fast exit.  If this diploid pair is already worse than the max, just stop and look at the next pair
                     if ( haplotypeLikelihood < maxElement ) {
@@ -297,7 +297,7 @@ public final class PerReadAlleleLikelihoodMap {
     /**
      * Is this read poorly modelled by all of the alleles in this map?
      *
-     * A read is poorly modeled when it's likelihood is below what would be expected for a read
+     * A read is poorly modeled when its likelihood is below what would be expected for a read
      * originating from one of the alleles given the maxErrorRatePerBase of the reads in general.
      *
      * This function makes a number of key assumptions.  First, that the likelihoods reflect the total likelihood
@@ -310,18 +310,18 @@ public final class PerReadAlleleLikelihoodMap {
      * a likelihood to be >= 10 * -3.
      *
      * @param read the read we want to evaluate
-     * @param log10Likelihoods a list of the log10 likelihoods of the read against a set of haplotypes.
+     * @param logLikelihoods a list of the log likelihoods of the read against a set of haplotypes.
      * @param maxErrorRatePerBase the maximum error rate we'd expect for this read per base, in real space.  So
      *                            0.01 means a 1% error rate
      * @return true if none of the log10 likelihoods imply that the read truly originated from one of the haplotypes
      */
     @VisibleForTesting
-    static boolean readIsPoorlyModelled(final GATKRead read, final Collection<Double> log10Likelihoods, final double maxErrorRatePerBase) {
+    static boolean readIsPoorlyModelled(final GATKRead read, final Collection<Double> logLikelihoods, final double maxErrorRatePerBase) {
         final double maxErrorsForRead = Math.min(2.0, Math.ceil(read.getLength() * maxErrorRatePerBase));
-        final double log10QualPerBase = -4.0;
-        final double log10MaxLikelihoodForTrueAllele = maxErrorsForRead * log10QualPerBase;
+        final double logQualPerBase = -4.0 * MathUtils.LOG10_TO_LOG_CONVERSION;
+        final double logMaxLikelihoodForTrueAllele = maxErrorsForRead * logQualPerBase;
 
-        return log10Likelihoods.stream().allMatch(lik -> lik < log10MaxLikelihoodForTrueAllele);
+        return logLikelihoods.stream().allMatch(lik -> lik < logMaxLikelihoodForTrueAllele);
     }
 
     /**

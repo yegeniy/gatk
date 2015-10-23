@@ -12,7 +12,7 @@ import java.util.*;
  */
 public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalculator {
 
-    private static final double LOG10_OF_2 = MathUtils.Log10Cache.get(2);
+    private static final double LOG_OF_2 = MathUtils.LogCache.get(2);
 
     protected ReferenceDiploidExactAFCalculator() {
     }
@@ -61,23 +61,23 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
                                                     final int numChr,
                                                     final Deque<ExactACset> ACqueue,
                                                     final Map<ExactACcounts, ExactACset> indexesToACset,
-                                                    final double[] log10AlleleFrequencyPriors,
+                                                    final double[] logAlleleFrequencyPriors,
                                                     final StateTracker stateTracker) {
 
         // compute the log10Likelihoods
-        computeLofK(set, genotypeLikelihoods, log10AlleleFrequencyPriors, stateTracker);
+        computeLofK(set, genotypeLikelihoods, logAlleleFrequencyPriors, stateTracker);
 
-        final double log10LofK = set.getLogLikelihoods(set.size()-1);
+        final double logLofK = set.getLogLikelihoods(set.size()-1);
 
-        // can we abort early because the log10Likelihoods are so small?
-        if ( stateTracker.abort(log10LofK, set.getACcounts(), true, false) ) {
-            return log10LofK;
+        // can we abort early because the logLikelihoods are so small?
+        if ( stateTracker.abort(logLofK, set.getACcounts(), true, false) ) {
+            return logLofK;
         }
 
         // iterate over higher frequencies if possible
         final int ACwiggle = numChr - set.getACsum();
         if ( ACwiggle == 0 ){ // all alternate alleles already sum to 2N so we cannot possibly go to higher frequencies
-            return log10LofK;
+            return logLofK;
         }
 
         final int numAltAlleles = set.getACcounts().getCounts().length;
@@ -121,12 +121,12 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
             }
         }
 
-        return log10LofK;
+        return logLofK;
     }
 
     private static void computeLofK(final ExactACset set,
                                     final List<double[]> genotypeLikelihoods,
-                                    final double[] log10AlleleFrequencyPriors, final StateTracker stateTracker) {
+                                    final double[] logAlleleFrequencyPriors, final StateTracker stateTracker) {
 
         set.setLogLikelihoods(0, 0.0); // the zero case
         final int totalK = set.getACsum();
@@ -137,9 +137,9 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
                 set.setLogLikelihoods(j, set.getLogLikelihoods(j - 1) + genotypeLikelihoods.get(j)[HOM_REF_INDEX]);
             }
 
-            final double log10Lof0 = set.getLogLikelihoods(set.size()-1);
-            stateTracker.setLog10LikelihoodOfAFzero(log10Lof0);
-            stateTracker.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
+            final double logLof0 = set.getLogLikelihoods(set.size()-1);
+            stateTracker.setLogLikelihoodOfAFzero(logLof0);
+            stateTracker.setLogPosteriorOfAFzero(logLof0 + logAlleleFrequencyPriors[0]);
             return;
         }
 
@@ -149,27 +149,27 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
         for ( int j = 1; j < set.size(); j++ ) {
             if ( totalK < 2*j-1 ) {
                 final double[] gl = genotypeLikelihoods.get(j);
-                final double conformationValue = MathUtils.Log10Cache.get(2*j-totalK) + MathUtils.Log10Cache.get(2*j-totalK-1) + set.getLogLikelihoods(j-1) + gl[HOM_REF_INDEX];
-                set.setLogLikelihoods(j, MathUtils.approximateLog10SumLog10(set.getLogLikelihoods(j), conformationValue));
+                final double conformationValue = MathUtils.LogCache.get(2*j-totalK) + MathUtils.LogCache.get(2*j-totalK-1) + set.getLogLikelihoods(j-1) + gl[HOM_REF_INDEX];
+                set.setLogLikelihoods(j, MathUtils.approximateLogSumLog(set.getLogLikelihoods(j), conformationValue));
             }
 
-            final double logDenominator = MathUtils.Log10Cache.get(2*j) + MathUtils.Log10Cache.get(2*j-1);
+            final double logDenominator = MathUtils.LogCache.get(2*j) + MathUtils.LogCache.get(2*j-1);
             set.setLogLikelihoods(j, set.getLogLikelihoods(j) - logDenominator);
         }
 
-        double log10LofK = set.getLogLikelihoods(set.size()-1);
+        double logLofK = set.getLogLikelihoods(set.size()-1);
 
         // update the MLE if necessary
-        stateTracker.updateMLEifNeeded(log10LofK, set.getACcounts().getCounts());
+        stateTracker.updateMLEifNeeded(logLofK, set.getACcounts().getCounts());
 
         // apply the priors over each alternate allele
         for ( final int ACcount : set.getACcounts().getCounts() ) {
             if ( ACcount > 0 ) {
-                log10LofK += log10AlleleFrequencyPriors[ACcount];
+                logLofK += logAlleleFrequencyPriors[ACcount];
             }
         }
 
-        stateTracker.updateMAPifNeeded(log10LofK, set.getACcounts().getCounts());
+        stateTracker.updateMAPifNeeded(logLofK, set.getACcounts().getCounts());
     }
 
     private static final class DependentSet {
@@ -214,7 +214,7 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
                 final double[] gl = genotypeLikelihoods.get(j);
                 final double conformationValue =
                         determineCoefficient(PLsetIndex, j, targetSet.getACcounts().getCounts(), totalK) + dependentSet.getLogLikelihoods(j-1) + gl[PLsetIndex];
-                targetSet.setLogLikelihoods(j, MathUtils.approximateLog10SumLog10(targetSet.getLogLikelihoods(j), conformationValue));
+                targetSet.setLogLikelihoods(j, MathUtils.approximateLogSumLog(targetSet.getLogLikelihoods(j), conformationValue));
             }
         }
     }
@@ -236,7 +236,7 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
 
         // the AX het case
         if ( alleles.alleleIndex1 == 0 ) {
-            return MathUtils.Log10Cache.get(2 * ACcounts[alleles.alleleIndex2 - 1]) + MathUtils.Log10Cache.get(2 * j - totalK);
+            return MathUtils.LogCache.get(2 * ACcounts[alleles.alleleIndex2 - 1]) + MathUtils.LogCache.get(2 * j - totalK);
         }
 
         final int k_i = ACcounts[alleles.alleleIndex1-1];
@@ -244,10 +244,10 @@ public final class ReferenceDiploidExactAFCalculator extends DiploidExactAFCalcu
         // the hom var case (e.g. BB, CC, DD)
         final double coeff;
         if ( alleles.alleleIndex1 == alleles.alleleIndex2 ) {
-            coeff = MathUtils.Log10Cache.get(k_i) + MathUtils.Log10Cache.get(k_i - 1);
+            coeff = MathUtils.LogCache.get(k_i) + MathUtils.LogCache.get(k_i - 1);
         } else {        // the het non-ref case (e.g. BC, BD, CD)
             final int k_j = ACcounts[alleles.alleleIndex2-1];
-            coeff = LOG10_OF_2 + MathUtils.Log10Cache.get(k_i) + MathUtils.Log10Cache.get(k_j);
+            coeff = LOG_OF_2 + MathUtils.LogCache.get(k_i) + MathUtils.LogCache.get(k_j);
         }
 
         return coeff;

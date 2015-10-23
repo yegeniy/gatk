@@ -7,7 +7,7 @@ import org.broadinstitute.hellbender.utils.MathUtils;
 import org.broadinstitute.hellbender.utils.clipping.ReadClipper;
 import org.broadinstitute.hellbender.utils.genotyper.*;
 import org.broadinstitute.hellbender.utils.haplotype.Haplotype;
-import org.broadinstitute.hellbender.utils.pairhmm.Log10PairHMM;
+import org.broadinstitute.hellbender.utils.pairhmm.LogPairHMM;
 import org.broadinstitute.hellbender.utils.pairhmm.LoglessPairHMM;
 import org.broadinstitute.hellbender.utils.pairhmm.PairHMM;
 import org.broadinstitute.hellbender.utils.pileup.PileupElement;
@@ -51,8 +51,8 @@ public class PairHMMIndelErrorModel {
             double baseProb = Math.pow(10, -k / 10.);
 
 
-            baseMatchArray[k] =  Math.log10(1 - baseProb);
-            baseMismatchArray[k] = Math.log10(baseProb);
+            baseMatchArray[k] =  Math.log(1 - baseProb);
+            baseMismatchArray[k] = Math.log(baseProb);
         }
     }
 
@@ -61,10 +61,10 @@ public class PairHMMIndelErrorModel {
 
         switch (hmmType) {
             case EXACT:
-                pairHMM = new Log10PairHMM(true);
+                pairHMM = new LogPairHMM(true);
                 break;
             case ORIGINAL:
-                pairHMM = new Log10PairHMM(false);
+                pairHMM = new LogPairHMM(false);
                 break;
             case LOGLESS_CACHING:
                 pairHMM = new LoglessPairHMM();
@@ -397,7 +397,7 @@ public class PairHMMIndelErrorModel {
                             new IndexedSampleList(Collections.singletonList("DUMMY_SAMPLE")),distinctHaplotypesList, Collections.singletonMap("DUMMY_SAMPLE", Collections.singletonList(processedRead)));
 
                     final LikelihoodMatrix<Haplotype> dummySampleLikelihoods = rl.sampleMatrix(0);
-                    pairHMM.computeLog10Likelihoods(rl.sampleMatrix(0), Collections.singletonList(processedRead), readGCPArrayMap);
+                    pairHMM.computeLogLikelihoods(rl.sampleMatrix(0), Collections.singletonList(processedRead), readGCPArrayMap);
 
                     // Pack the original pilup element, each allele, and each associated log10 likelihood into a final map, and add each likelihood to the array
                     for (final Allele a: trimmedHaplotypeMap.keySet()){
@@ -446,7 +446,7 @@ public class PairHMMIndelErrorModel {
                         continue;
                     final double li = readLikelihoods[readIdx][i];
                     final double lj = readLikelihoods[readIdx][j];
-                    haplotypeLikehoodMatrix[i][j] += MathUtils.approximateLog10SumLog10(li, lj) + MathUtils.LOG_ONE_HALF;
+                    haplotypeLikehoodMatrix[i][j] += MathUtils.approximateLogSumLog(li, lj) + MathUtils.LOG_ONE_HALF;
                 }
             }
         }
@@ -460,6 +460,6 @@ public class PairHMMIndelErrorModel {
         }
 
         // renormalize so that max element is zero.
-        return MathUtils.normalizeFromLog10(genotypeLikelihoods, false, true);
+        return MathUtils.normalizeFromLog(genotypeLikelihoods, false, true);
     }
 }

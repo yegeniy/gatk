@@ -10,7 +10,6 @@ import org.testng.annotations.DataProvider;
 import org.testng.annotations.Test;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 public final class AFCalculationResultUnitTest extends BaseTest {
     private static class MyTest {
@@ -74,14 +73,14 @@ public final class AFCalculationResultUnitTest extends BaseTest {
         final int[] zeroAC = {0};
         final AFCalculationResult result = new AFCalculationResult(zeroAC, alleles, data.Ls, log10Even, Collections.singletonMap(C, -1.0));
 
-        Assert.assertEquals(result.getLog10PosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
-        Assert.assertEquals(result.getLog10PosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
+        Assert.assertEquals(result.getLogPosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
+        Assert.assertEquals(result.getLogPosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
 
-        Assert.assertEquals(result.getLog10PriorOfAFEq0(), log10Even[0], 1e-3, "prior for AF > 0 not expected");
-        Assert.assertEquals(result.getLog10PriorOfAFGT0(), log10Even[1], 1e-3, "prior for AF > 0 not expected");
+        Assert.assertEquals(result.getLogPriorOfAFEq0(), log10Even[0], 1e-3, "prior for AF > 0 not expected");
+        Assert.assertEquals(result.getLogPriorOfAFGT0(), log10Even[1], 1e-3, "prior for AF > 0 not expected");
 
-        Assert.assertEquals(result.getLog10LikelihoodOfAFEq0(), data.Ls[0], 1e-3, "likelihood for AF > 0 not expected");
-        Assert.assertEquals(result.getLog10LikelihoodOfAFGT0(), data.Ls[1], 1e-3, "likelihood for AF > 0 not expected");
+        Assert.assertEquals(result.getLogLikelihoodOfAFEq0(), data.Ls[0], 1e-3, "likelihood for AF > 0 not expected");
+        Assert.assertEquals(result.getLogLikelihoodOfAFGT0(), data.Ls[1], 1e-3, "likelihood for AF > 0 not expected");
 
         Assert.assertEquals(result.getAllelesUsedInGenotyping(), alleles, "alleles are different");
 
@@ -89,11 +88,11 @@ public final class AFCalculationResultUnitTest extends BaseTest {
 
 
         Assert.assertEquals(result.getAlleleCountAtMLE(C), zeroAC[0]);
-        //getLog10PosteriorOfAFEq0ForAllele
+        //getLogPosteriorOfAFEq0ForAllele
         //withNewPriors
 
         Assert.assertEquals(result.getAlleleCountsOfMLE(), zeroAC, "getAlleleCountsOfMLE not as expected");
-        final double[] actualPosteriors = {result.getLog10PosteriorOfAFEq0(), result.getLog10PosteriorOfAFGT0()};
+        final double[] actualPosteriors = {result.getLogPosteriorOfAFEq0(), result.getLogPosteriorOfAFGT0()};
         Assert.assertEquals(MathUtils.sumLog10(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
     }
 
@@ -150,10 +149,10 @@ public final class AFCalculationResultUnitTest extends BaseTest {
     private void test(final MyTest data) {
         final AFCalculationResult result = new AFCalculationResult(new int[]{0}, alleles, data.Ls, log10Even, Collections.singletonMap(C, -1.0));
 
-        Assert.assertEquals(result.getLog10PosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
-        Assert.assertEquals(result.getLog10PosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
+        Assert.assertEquals(result.getLogPosteriorOfAFEq0(), data.expectedPosteriors[0], 1e-3, "AF = 0 not expected");
+        Assert.assertEquals(result.getLogPosteriorOfAFGT0(), data.expectedPosteriors[1], 1e-3, "AF > 0 not expected");
 
-        final double[] actualPosteriors = {result.getLog10PosteriorOfAFEq0(), result.getLog10PosteriorOfAFGT0()};
+        final double[] actualPosteriors = {result.getLogPosteriorOfAFEq0(), result.getLogPosteriorOfAFGT0()};
         Assert.assertEquals(MathUtils.sumLog10(actualPosteriors), 1.0, 1e-3, "Posteriors don't sum to 1 with 1e-3 precision");
     }
 }

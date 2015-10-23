@@ -24,14 +24,14 @@ import java.util.Map;
  */
 final class StateTracker {
     private static final double VALUE_NOT_CALCULATED = Double.NEGATIVE_INFINITY;
-    static final double MAX_LOG10_ERROR_TO_STOP_EARLY = 6; // we want the calculation to be accurate to 1 / 10^6
+    static final double MAX_LOG_ERROR_TO_STOP_EARLY = 6 * MathUtils.LOG10_TO_LOG_CONVERSION; // we want the calculation to be accurate to 1 / 10^6
 
     /**
      * These variables are intended to contain the MLE and MAP (and their corresponding allele counts)
      * of the site over all alternate alleles
      */
-    private double log10MLE;
-    private double log10MAP;
+    private double logMLE;
+    private double logMAP;
 
     /**
      * Returns a vector with maxAltAlleles values containing AC values at the MLE
@@ -49,19 +49,19 @@ final class StateTracker {
      * vector is exceeed -- because we've pushed more posteriors than there's space to hold
      * -- we simply sum up the existing values, make that the first value, and continue.
      */
-    private final double[] log10LikelihoodsForAFGt0 = new double[LIKELIHOODS_CACHE_SIZE];
+    private final double[] logLikelihoodsForAFGt0 = new double[LIKELIHOODS_CACHE_SIZE];
     private static final int LIKELIHOODS_CACHE_SIZE = 5000;
-    private int log10LikelihoodsForAFGt0CacheIndex = 0;
+    private int logLikelihoodsForAFGt0CacheIndex = 0;
 
     /**
      * The actual sum of the likelihoods.  Null if the sum hasn't been computed yet
      */
-    private Double log10LikelihoodsForAFGt0Sum = null;
+    private Double logLikelihoodsForAFGt0Sum = null;
 
     /**
      * Contains the likelihood for the site's being monomorphic (i.e. AF=0 for all alternate alleles)
      */
-    private double log10LikelihoodOfAFzero = 0.0;
+    private double logLikelihoodOfAFzero = 0.0;
 
     /**
      * The list of alleles actually used in computing the AF
@@ -88,11 +88,11 @@ final class StateTracker {
      * Is the likelihood of configuration K too low to consider, related to the
      * maximum likelihood seen already?
      *
-     * @param log10LofK the log10 likelihood of the configuration we're considering analyzing
+     * @param logLofK the log10 likelihood of the configuration we're considering analyzing
      * @return true if the configuration cannot meaningfully contribute to our likelihood sum
      */
-    private boolean tooLowLikelihood(final double log10LofK) {
-        return log10LofK < log10MLE - MAX_LOG10_ERROR_TO_STOP_EARLY;
+    private boolean tooLowLikelihood(final double logLofK) {
+        return logLofK < logMLE - MAX_LOG_ERROR_TO_STOP_EARLY;
     }
 
     /**
@@ -113,16 +113,16 @@ final class StateTracker {
     }
 
     /**
-     * Should we stop exploring paths from ACs, given it's log10LofK
+     * Should we stop exploring paths from ACs, given it's logLofK
      *
-     * @param log10LofK the log10LofK of these ACs
+     * @param logLofK the logLofK of these ACs
      * @param ACs the ACs of this state
      * @param exactACcountsContainReference whether the {@code ACs} contains the reference allele count (index == 0) beside all other alternative alleles.
      * @return return true if there's no reason to continue with subpaths of AC, or false otherwise
      */
     @VisibleForTesting
-    boolean abort(final double log10LofK, final ExactACcounts ACs, final boolean enforceLowerACs, final boolean exactACcountsContainReference) {
-        return tooLowLikelihood(log10LofK) && (!enforceLowerACs || isLowerAC(ACs,exactACcountsContainReference));
+    boolean abort(final double logLofK, final ExactACcounts ACs, final boolean enforceLowerACs, final boolean exactACcountsContainReference) {
+        return tooLowLikelihood(logLofK) && (!enforceLowerACs || isLowerAC(ACs,exactACcountsContainReference));
     }
 
     @VisibleForTesting
@@ -133,22 +133,22 @@ final class StateTracker {
     /**
      * @return the likelihoods summed across all AC values for AC > 0
      */
-    private double getLog10LikelihoodOfAFNotZero() {
-        if ( log10LikelihoodsForAFGt0Sum == null ) {
-            if ( log10LikelihoodsForAFGt0CacheIndex == 0 ){ // there's nothing to sum up, so make the sum equal to the smallest thing we have
-                log10LikelihoodsForAFGt0Sum = MathUtils.LOG10_P_OF_ZERO;
+    private double getLogLikelihoodOfAFNotZero() {
+        if ( logLikelihoodsForAFGt0Sum == null ) {
+            if ( logLikelihoodsForAFGt0CacheIndex == 0 ){ // there's nothing to sum up, so make the sum equal to the smallest thing we have
+                logLikelihoodsForAFGt0Sum = MathUtils.LOG_P_OF_ZERO;
             } else {
-                log10LikelihoodsForAFGt0Sum = MathUtils.log10SumLog10(log10LikelihoodsForAFGt0, 0, log10LikelihoodsForAFGt0CacheIndex);
+                logLikelihoodsForAFGt0Sum = MathUtils.logSumLog(logLikelihoodsForAFGt0, 0, logLikelihoodsForAFGt0CacheIndex);
             }
         }
-        return log10LikelihoodsForAFGt0Sum;
+        return logLikelihoodsForAFGt0Sum;
     }
 
     /**
-     * @return the log10 likelihood of AF == 0
+     * @return the log likelihood of AF == 0
      */
-    private double getLog10LikelihoodOfAFzero() {
-        return log10LikelihoodOfAFzero;
+    private double getLogLikelihoodOfAFzero() {
+        return logLikelihoodOfAFzero;
     }
 
     /**
@@ -158,23 +158,23 @@ final class StateTracker {
      * For example, that the allelesUsedInGenotyping has been set, that the alleleCountsOfMLE contains meaningful
      * values, etc.
      *
-     * @param log10PriorsByAC the priors by AC
+     * @param logPriorsByAC the priors by AC
      *
      * @return an AFCalcResult summarizing the final results of this calculation
      */
-    AFCalculationResult toAFCalculationResult(final double[] log10PriorsByAC) {
+    AFCalculationResult toAFCalculationResult(final double[] logPriorsByAC) {
         final int [] subACOfMLE = Arrays.copyOf(alleleCountsOfMLE, allelesUsedInGenotyping.size() - 1);
-        final double[] log10Likelihoods = MathUtils.normalizeFromLog10(new double[]{getLog10LikelihoodOfAFzero(), getLog10LikelihoodOfAFNotZero()}, true);
-        final double[] log10Priors = MathUtils.normalizeFromLog10(new double[]{log10PriorsByAC[0], MathUtils.log10SumLog10(log10PriorsByAC, 1)}, true);
+        final double[] logLikelihoods = MathUtils.normalizeFromLog(new double[]{getLogLikelihoodOfAFzero(), getLogLikelihoodOfAFNotZero()}, true);
+        final double[] logPriors = MathUtils.normalizeFromLog(new double[]{logPriorsByAC[0], MathUtils.logSumLog(logPriorsByAC, 1)}, true);
 
-        final Map<Allele, Double> log10pRefByAllele = new HashMap<>(allelesUsedInGenotyping.size());
+        final Map<Allele, Double> logpRefByAllele = new HashMap<>(allelesUsedInGenotyping.size());
         for ( int i = 0; i < subACOfMLE.length; i++ ) {
             final Allele allele = allelesUsedInGenotyping.get(i+1);
-            final double log10PRef = alleleCountsOfMAP[i] > 0 ? -10000 : 0; // TODO -- a total hack but in effect what the old behavior was
-            log10pRefByAllele.put(allele, log10PRef);
+            final double logPRef = alleleCountsOfMAP[i] > 0 ? -10000 : 0; // TODO -- a total hack but in effect what the old behavior was
+            logpRefByAllele.put(allele, logPRef);
         }
 
-        return new AFCalculationResult(subACOfMLE, allelesUsedInGenotyping, log10Likelihoods, log10Priors, log10pRefByAllele);
+        return new AFCalculationResult(subACOfMLE, allelesUsedInGenotyping, logLikelihoods, logPriors, logpRefByAllele);
     }
 
     // --------------------------------------------------------------------------------
@@ -192,9 +192,9 @@ final class StateTracker {
      *                                tracker.
      */
     void reset(final int ensureAltAlleleCapacity) {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = VALUE_NOT_CALCULATED;
-        log10LikelihoodsForAFGt0CacheIndex = 0;
-        log10LikelihoodsForAFGt0Sum = null;
+        logMLE = logMAP = logLikelihoodOfAFzero = VALUE_NOT_CALCULATED;
+        logLikelihoodsForAFGt0CacheIndex = 0;
+        logLikelihoodsForAFGt0Sum = null;
         allelesUsedInGenotyping = null;
         if (alleleCountsOfMAP.length < ensureAltAlleleCapacity) {
             final int newCapacity = Math.max(ensureAltAlleleCapacity, alleleCountsOfMAP.length << 1);
@@ -204,7 +204,7 @@ final class StateTracker {
             Arrays.fill(alleleCountsOfMLE, 0);
             Arrays.fill(alleleCountsOfMAP, 0);
         }
-        Arrays.fill(log10LikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
+        Arrays.fill(logLikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
     }
 
     /**
@@ -213,26 +213,26 @@ final class StateTracker {
      * Resetting of the data is done by the calculation model itself, so shouldn't be done by callers any longer
      */
     void reset() {
-        log10MLE = log10MAP = log10LikelihoodOfAFzero = VALUE_NOT_CALCULATED;
-        log10LikelihoodsForAFGt0CacheIndex = 0;
-        log10LikelihoodsForAFGt0Sum = null;
+        logMLE = logMAP = logLikelihoodOfAFzero = VALUE_NOT_CALCULATED;
+        logLikelihoodsForAFGt0CacheIndex = 0;
+        logLikelihoodsForAFGt0Sum = null;
         allelesUsedInGenotyping = null;
         Arrays.fill(alleleCountsOfMLE, 0);
         Arrays.fill(alleleCountsOfMAP, 0);
-        Arrays.fill(log10LikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
+        Arrays.fill(logLikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
     }
 
     /**
-     * Update the maximum log10 likelihoods seen, if log10LofKs is higher, and the corresponding ACs of this state
+     * Update the maximum log likelihoods seen, if logLofKs is higher, and the corresponding ACs of this state
      *
-     * @param log10LofK the likelihood of our current configuration state, cannot be the 0 state
+     * @param logLofK the likelihood of our current configuration state, cannot be the 0 state
      * @param alleleCountsForK the allele counts for this state
      */
-    void updateMLEifNeeded(final double log10LofK, final int[] alleleCountsForK) {
-        addToLikelihoodsCache(log10LofK);
+    void updateMLEifNeeded(final double logLofK, final int[] alleleCountsForK) {
+        addToLikelihoodsCache(logLofK);
 
-        if ( log10LofK > log10MLE ) {
-            log10MLE = log10LofK;
+        if ( logLofK > logMLE) {
+            logMLE = logLofK;
             System.arraycopy(alleleCountsForK, 0, alleleCountsOfMLE, 0, alleleCountsForK.length);
         }
     }
@@ -240,40 +240,40 @@ final class StateTracker {
     /**
      * Update the maximum log10 posterior seen, if log10PofKs is higher, and the corresponding ACs of this state
      *
-     * @param log10PofK the posterior of our current configuration state
+     * @param logPofK the posterior of our current configuration state
      * @param alleleCountsForK the allele counts for this state
      */
-    void updateMAPifNeeded(final double log10PofK, final int[] alleleCountsForK) {
-        if ( log10PofK > log10MAP ) {
-            log10MAP = log10PofK;
+    void updateMAPifNeeded(final double logPofK, final int[] alleleCountsForK) {
+        if ( logPofK > logMAP) {
+            logMAP = logPofK;
             System.arraycopy(alleleCountsForK, 0, alleleCountsOfMAP, 0, alleleCountsForK.length);
         }
     }
 
-    private void addToLikelihoodsCache(final double log10LofK) {
+    private void addToLikelihoodsCache(final double logLofK) {
         // add to the cache
-        log10LikelihoodsForAFGt0[log10LikelihoodsForAFGt0CacheIndex++] = log10LofK;
+        logLikelihoodsForAFGt0[logLikelihoodsForAFGt0CacheIndex++] = logLofK;
 
         // if we've filled up the cache, then condense by summing up all of the values and placing the sum back into the first cell
-        if ( log10LikelihoodsForAFGt0CacheIndex == LIKELIHOODS_CACHE_SIZE) {
-            final double temporarySum = MathUtils.log10SumLog10(log10LikelihoodsForAFGt0, 0, log10LikelihoodsForAFGt0CacheIndex);
-            Arrays.fill(log10LikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
-            log10LikelihoodsForAFGt0[0] = temporarySum;
-            log10LikelihoodsForAFGt0CacheIndex = 1;
+        if ( logLikelihoodsForAFGt0CacheIndex == LIKELIHOODS_CACHE_SIZE) {
+            final double temporarySum = MathUtils.logSumLog(logLikelihoodsForAFGt0, 0, logLikelihoodsForAFGt0CacheIndex);
+            Arrays.fill(logLikelihoodsForAFGt0, Double.POSITIVE_INFINITY);
+            logLikelihoodsForAFGt0[0] = temporarySum;
+            logLikelihoodsForAFGt0CacheIndex = 1;
         }
     }
 
-    void setLog10LikelihoodOfAFzero(final double log10LikelihoodOfAFzero) {
-        this.log10LikelihoodOfAFzero = log10LikelihoodOfAFzero;
-        if ( log10LikelihoodOfAFzero > log10MLE ) {
-            log10MLE = log10LikelihoodOfAFzero;
+    void setLogLikelihoodOfAFzero(final double logLikelihoodOfAFzero) {
+        this.logLikelihoodOfAFzero = logLikelihoodOfAFzero;
+        if ( logLikelihoodOfAFzero > logMLE) {
+            logMLE = logLikelihoodOfAFzero;
             Arrays.fill(alleleCountsOfMLE, 0);
         }
     }
 
-    void setLog10PosteriorOfAFzero(final double log10PosteriorOfAFzero) {
-        if ( log10PosteriorOfAFzero > log10MAP ) {
-            log10MAP = log10PosteriorOfAFzero;
+    void setLogPosteriorOfAFzero(final double logPosteriorOfAFzero) {
+        if ( logPosteriorOfAFzero > logMAP) {
+            logMAP = logPosteriorOfAFzero;
             Arrays.fill(alleleCountsOfMAP, 0);
         }
     }

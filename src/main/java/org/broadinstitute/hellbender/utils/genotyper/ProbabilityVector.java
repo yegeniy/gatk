@@ -9,7 +9,7 @@ public final class ProbabilityVector {
     private final int minVal;
     private final int maxVal;
 
-    static final double LOG_DYNAMIC_RANGE = 10; // values X below max vector value will be removed
+    static final double LOG_DYNAMIC_RANGE = MathUtils.LOG10_TO_LOG_CONVERSION * 10; // values X below max vector value will be removed
 
     /**
      * Default constructor: take vector in log-space, with support from range [0,len-1]
@@ -64,7 +64,7 @@ public final class ProbabilityVector {
     /**
      * Return log Probability for original index i
      * @param idx   Index to probe
-     * @return      log10(Pr X = i) )
+     * @return      log(Pr X = i) )
      */
     public double getLogProbabilityForIndex(final int idx) {
         if (idx < minVal || idx > maxVal) {
@@ -87,10 +87,7 @@ public final class ProbabilityVector {
                 break;
             }
         }
-
         return edgeIdx;
-
-
     }
 
     /**
@@ -106,10 +103,7 @@ public final class ProbabilityVector {
                 break;
             }
         }
-
         return edgeIdx;
-
-
     }
 
     /**
@@ -131,11 +125,8 @@ public final class ProbabilityVector {
             final int startI = minRange - this.minVal;
             final int startJ = minRange - other.getMinVal();
             result[k] = this.probabilityArray[k+startI] + other.probabilityArray[k+startJ];
-            
-
-
         }
-        return MathUtils.approximateLog10SumLog10(result);
+        return MathUtils.approximateLogSumLog(result);
     }
 
 }

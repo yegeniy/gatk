@@ -28,7 +28,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
     @Override
     protected AFCalculationResult computeLogPNonRef(final VariantContext vc, final int defaultPloidy, final double[] logAlleleFrequencyPriors, final StateTracker stateTracker) {
         Utils.nonNull(vc, "vc is null");
-        Utils.nonNull(logAlleleFrequencyPriors, "log10AlleleFrequencyPriors is null");
+        Utils.nonNull(logAlleleFrequencyPriors, "logAlleleFrequencyPriors is null");
         Utils.nonNull(stateTracker, "stateTracker is null");
         combineSinglePools(vc.getGenotypes(), defaultPloidy, vc.getNAlleles(), logAlleleFrequencyPriors);
         return getResultFromFinalState(vc, logAlleleFrequencyPriors, stateTracker);
@@ -114,13 +114,13 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
      * Simple non-optimized version that combines GLs from several pools and produces global AF distribution.
      * @param GLs                              Inputs genotypes context with per-pool GLs
      * @param numAlleles                       Number of alternate alleles
-     * @param log10AlleleFrequencyPriors       Frequency priors
+     * @param logAlleleFrequencyPriors       Frequency priors
      */
     @VisibleForTesting
     void combineSinglePools(final GenotypesContext GLs,
                                     final int defaultPloidy,
                                     final int numAlleles,
-                                    final double[] log10AlleleFrequencyPriors) {
+                                    final double[] logAlleleFrequencyPriors) {
 
         // Combine each pool incrementally - likelihoods will be renormalized at each step
 
@@ -148,11 +148,11 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
             final int ploidy = declaredPloidy < 1 ? defaultPloidy : declaredPloidy;
             // they do qualify so we proceed.
             combinedPoolLikelihoods = fastCombineMultiallelicPool(combinedPoolLikelihoods, gls,
-                    combinedPloidy, ploidy, numAlleles, log10AlleleFrequencyPriors, stateTracker);
+                    combinedPloidy, ploidy, numAlleles, logAlleleFrequencyPriors, stateTracker);
             combinedPloidy = ploidy + combinedPloidy; // total number of chromosomes in combinedLikelihoods
         }
         if (combinedPloidy == 0) {
-            stateTracker.setLog10LikelihoodOfAFzero(0.0);
+            stateTracker.setLogLikelihoodOfAFzero(0.0);
         }
     }
 
@@ -161,7 +161,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
                                                                final int originalPloidy,
                                                                final int newGLPloidy,
                                                                final int numAlleles,
-                                                               final double[] log10AlleleFrequencyPriors,
+                                                               final double[] logAlleleFrequencyPriors,
                                                                final StateTracker stateTracker) {
         final Deque<ExactACset> ACqueue = new LinkedList<>();
         // mapping of ExactACset indexes to the objects
@@ -180,10 +180,10 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
 
         // keep processing while we have AC conformations that need to be calculated
         while ( !ACqueue.isEmpty() ) {
-            // compute log10Likelihoods
+            // compute logLikelihoods
             final ExactACset ACset = ACqueue.remove();
 
-            calculateACConformationAndUpdateQueue(ACset, newPool, originalPool, newGL, log10AlleleFrequencyPriors, originalPloidy, newGLPloidy, ACqueue, indexesToACset, stateTracker);
+            calculateACConformationAndUpdateQueue(ACset, newPool, originalPool, newGL, logAlleleFrequencyPriors, originalPloidy, newGLPloidy, ACqueue, indexesToACset, stateTracker);
 
             // clean up memory
             indexesToACset.remove(ACset.getACcounts());
@@ -201,7 +201,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
      * @param newPool                   New pool likelihood holder
      * @param originalPool              Original likelihood holder
      * @param newGL                     New pool GL vector to combine
-     * @param log10AlleleFrequencyPriors Prior object
+     * @param logAlleleFrequencyPriors  Prior object
      * @param originalPloidy             Total ploidy of original combined pool
      * @param newGLPloidy                Ploidy of GL vector
      * @param ACqueue                    Queue of conformations to compute
@@ -212,7 +212,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
                                                          final CombinedPoolLikelihoods newPool,
                                                          final CombinedPoolLikelihoods originalPool,
                                                          final double[] newGL,
-                                                         final double[] log10AlleleFrequencyPriors,
+                                                         final double[] logAlleleFrequencyPriors,
                                                          final int originalPloidy,
                                                          final int newGLPloidy,
                                                          final Deque<ExactACset> ACqueue,
@@ -222,16 +222,16 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         // compute likelihood in "set" of new set based on original likelihoods
         final int numAlleles = set.getACcounts().getCounts().length;
         final int newPloidy = set.getACsum();
-        final double log10LofK = computeLofK(set, originalPool, newGL, log10AlleleFrequencyPriors, numAlleles, originalPloidy, newGLPloidy, stateTracker);
+        final double logLofK = computeLofK(set, originalPool, newGL, logAlleleFrequencyPriors, numAlleles, originalPloidy, newGLPloidy, stateTracker);
 
 
         // add to new pool
-        if (!Double.isInfinite(log10LofK)) {
+        if (!Double.isInfinite(logLofK)) {
             newPool.add(set);
         }
 
-        if ( stateTracker.abort(log10LofK, set.getACcounts(), true, true) ) {
-            return log10LofK;
+        if ( stateTracker.abort(logLofK, set.getACcounts(), true, true) ) {
+            return logLofK;
         }
 
         // iterate over higher frequencies if possible
@@ -240,7 +240,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         final int ACwiggle = set.getACcounts().getCounts()[0];
         if ( ACwiggle == 0 ) // all alternate alleles already sum to 2N so we cannot possibly go to higher frequencies
         {
-            return log10LofK;
+            return logLofK;
         }
 
 
@@ -259,7 +259,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         }
 
 
-        return log10LofK;
+        return logLofK;
     }
 
     /**
@@ -267,7 +267,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
      * @param set                     Set of AC counts to compute
      * @param firstGLs                  Original pool likelihoods before combining
      * @param secondGL                  New GL vector with additional pool
-     * @param log10AlleleFrequencyPriors     Allele frequency priors
+     * @param logAlleleFrequencyPriors  Allele frequency priors
      * @param numAlleles                Number of alleles (including ref)
      * @param ploidy1                   Ploidy of original pool (combined)
      * @param ploidy2                   Ploidy of new pool
@@ -276,7 +276,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
     private double computeLofK(final ExactACset set,
                                final CombinedPoolLikelihoods firstGLs,
                                final double[] secondGL,
-                               final double[] log10AlleleFrequencyPriors,
+                               final double[] logAlleleFrequencyPriors,
                                final int numAlleles, final int ploidy1, final int ploidy2, final StateTracker stateTracker) {
 
         final int newPloidy = ploidy1 + ploidy2;
@@ -293,11 +293,11 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
 
         // special case for k = 0 over all k
         if ( totalAltK == 0 ) {   // all-ref case
-            final double log10Lof0 = firstGLs.getGLOfACZero() + secondGL[HOM_REF_INDEX];
-            set.setLogLikelihoods(0, log10Lof0);
-            stateTracker.setLog10LikelihoodOfAFzero(log10Lof0);
-            stateTracker.setLog10PosteriorOfAFzero(log10Lof0 + log10AlleleFrequencyPriors[0]);
-            return log10Lof0;
+            final double logLof0 = firstGLs.getGLOfACZero() + secondGL[HOM_REF_INDEX];
+            set.setLogLikelihoods(0, logLof0);
+            stateTracker.setLogLikelihoodOfAFzero(logLof0);
+            stateTracker.setLogPosteriorOfAFzero(logLof0 + logAlleleFrequencyPriors[0]);
+            return logLof0;
 
         }   else {
 
@@ -306,7 +306,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
             // To compute n!/k1!k2!k3!... we need to compute first n!/(k2!k3!...) and then further divide by k1! where k1=ploidy-sum_k_i
 
             final int[] currentCount = set.getACcounts().getCounts();
-            final double denom =  -MathUtils.log10MultinomialCoefficient(newPloidy, currentCount);
+            final double denom =  -MathUtils.logMultinomialCoefficient(newPloidy, currentCount);
 
             // for current conformation, get all possible ways to break vector K into two components G1 and G2
             final SumIterator innerIterator = new SumIterator(numAlleles,ploidy2);
@@ -322,11 +322,11 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
                     final double gl2 = secondGL[idx2];
                     if (!Double.isInfinite(gl2)) {
                         final double firstGL = firstGLs.getLikelihoodOfConformation(acCount1);
-                        final double num1 = MathUtils.log10MultinomialCoefficient(ploidy1, acCount1);
-                        final double num2 = MathUtils.log10MultinomialCoefficient(ploidy2, acCount2);
+                        final double num1 = MathUtils.logMultinomialCoefficient(ploidy1, acCount1);
+                        final double num2 = MathUtils.logMultinomialCoefficient(ploidy2, acCount2);
                         final double sum = firstGL + gl2 + num1 + num2;
 
-                        set.setLogLikelihoods(0, MathUtils.approximateLog10SumLog10(set.getLogLikelihoods(0), sum));
+                        set.setLogLikelihoods(0, MathUtils.approximateLogSumLog(set.getLogLikelihoods(0), sum));
                     }
                 }
                 innerIterator.next();
@@ -335,23 +335,23 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
             set.setLogLikelihoods(0, set.getLogLikelihoods(0) + denom);
         }
 
-        double log10LofK = set.getLogLikelihoods(0);
+        double logLofK = set.getLogLikelihoods(0);
 
         // update the MLE if necessary
         final int altCounts[] = Arrays.copyOfRange(set.getACcounts().getCounts(), 1, set.getACcounts().getCounts().length);
         // TODO -- GUILLERMO THIS CODE MAY PRODUCE POSITIVE LIKELIHOODS OR -INFINITY
-        stateTracker.updateMLEifNeeded(Math.max(log10LofK, -Double.MAX_VALUE), altCounts);
+        stateTracker.updateMLEifNeeded(Math.max(logLofK, -Double.MAX_VALUE), altCounts);
 
         // apply the priors over each alternate allele
         for (final int ACcount : altCounts ) {
             if ( ACcount > 0 ) {
-                log10LofK += log10AlleleFrequencyPriors[ACcount];
+                logLofK += logAlleleFrequencyPriors[ACcount];
             }
         }
         // TODO -- GUILLERMO THIS CODE MAY PRODUCE POSITIVE LIKELIHOODS OR -INFINITY
-        stateTracker.updateMAPifNeeded(Math.max(log10LofK, -Double.MAX_VALUE), altCounts);
+        stateTracker.updateMAPifNeeded(Math.max(logLofK, -Double.MAX_VALUE), altCounts);
 
-        return log10LofK;
+        return logLofK;
     }
 
     /**
@@ -425,7 +425,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
                 newLikelihoods = subsetToAlleles(originalLikelihoods, ploidy, vc.getAlleles(), allelesToUse);
 
                 // might need to re-normalize
-                newLikelihoods = MathUtils.normalizeFromLog10(newLikelihoods, false, true);
+                newLikelihoods = MathUtils.normalizeFromLog(newLikelihoods, false, true);
             }
 
             // if there is no mass on the (new) likelihoods, then just no-call the sample
@@ -481,6 +481,7 @@ public final class GeneralPloidyExactAFCalculator extends ExactAFCalculator {
         }
 
         if ( numNewAltAlleles > 0 ) {
+            //TODO: fix this
             gb.log10PError(GenotypeLikelihoods.getGQLog10FromLikelihoods(PLindex, newLikelihoods));
         }
     }
